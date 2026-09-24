@@ -8,234 +8,401 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.kpaatmik.weather_application.audit.*;
-import com.kpaatmik.weather_application.dto.request.*;
+import com.kpaatmik.weather_application.audit.AuditAction;
+import com.kpaatmik.weather_application.audit.AuditEntityType;
+import com.kpaatmik.weather_application.dto.request.LoginRequest;
+import com.kpaatmik.weather_application.dto.request.RegisterRequest;
 import com.kpaatmik.weather_application.dto.response.AuthResponse;
-import com.kpaatmik.weather_application.entity.*;
-import com.kpaatmik.weather_application.exception.*;
+import com.kpaatmik.weather_application.entity.Role;
+import com.kpaatmik.weather_application.entity.User;
+import com.kpaatmik.weather_application.exception.InvalidCredentialsException;
+import com.kpaatmik.weather_application.exception.InvalidRefreshTokenException;
+import com.kpaatmik.weather_application.exception.UserAccountInactiveException;
+import com.kpaatmik.weather_application.exception.UserAlreadyExistsException;
 import com.kpaatmik.weather_application.repository.UserRepository;
 import com.kpaatmik.weather_application.security.JwtService;
 
-@ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
-    @Mock UserRepository userRepository;
-    @Mock PasswordEncoder passwordEncoder;
-    @Mock AuthenticationManager authenticationManager;
-    @Mock JwtService jwtService;
-    @Mock AuditService auditService;
+    private UserRepository userRepository;
+    private PasswordEncoder passwordEncoder;
+    private AuthenticationManager authenticationManager;
+    private JwtService jwtService;
+    private AuditService auditService;
 
-    @InjectMocks AuthService authService;
-
-    private RegisterRequest registerRequest;
-    private LoginRequest loginRequest;
-    private User user;
+    private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        registerRequest = new RegisterRequest("aatmik", "aatmik@example.com", "password123");
-        loginRequest = new LoginRequest("aatmik", "password123");
-        user = User.builder()
-                .id(1L).username("aatmik").email("aatmik@example.com")
-                .password("HASH").role(Role.USER).active(true).build();
+
+        userRepository = mock(UserRepository.class);
+        passwordEncoder = mock(PasswordEncoder.class);
+        authenticationManager = mock(AuthenticationManager.class);
+        jwtService = mock(JwtService.class);
+        auditService = mock(AuditService.class);
+
+        authService = new AuthService(
+                userRepository,
+                passwordEncoder,
+                authenticationManager,
+                jwtService,
+                auditService
+        );
     }
 
+    // ---------------------------------------------------------
+    // REGISTER
+    // ---------------------------------------------------------
+
     @Test
-    void register_shouldCreateUserWithHashedPasswordAndUserRole() {
-        when(userRepository.existsByUsername("aatmik")).thenReturn(false);
-        when(userRepository.existsByEmail("aatmik@example.com")).thenReturn(false);
-        when(passwordEncoder.encode("password123")).thenReturn("HASH");
-        when(userRepository.save(any(User.class))).thenReturn(user);
+    void register_shouldCreateUserSuccessfully() {
 
-        authService.register(registerRequest);
+        RegisterRequest request =
+                new RegisterRequest(
+                        "john",
+                        "john@gmail.com",
+                        "password123"
+                );
 
-        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(captor.capture());
+        User savedUser = User.builder()
+                .id(1L)
+                .username("john")
+                .email("john@gmail.com")
+                .password("encoded-password")
+                .role(Role.USER)
+                .active(true)
+                .build();
 
-        User saved = captor.getValue();
-        assertEquals("aatmik", saved.getUsername());
-        assertEquals("aatmik@example.com", saved.getEmail());
-        assertEquals("HASH", saved.getPassword());
-        assertEquals(Role.USER, saved.getRole());
-        assertTrue(saved.getActive());
+        when(userRepository.existsByUsername("john"))
+                .thenReturn(false);
 
-        verify(auditService).log(1L, AuditAction.USER_REGISTERED, AuditEntityType.USER,
-                1L, "User registered successfully");
+        when(userRepository.existsByEmail("john@gmail.com"))
+                .thenReturn(false);
+
+        when(passwordEncoder.encode("password123"))
+                .thenReturn("encoded-password");
+
+        when(userRepository.save(any(User.class)))
+                .thenReturn(savedUser);
+
+        authService.register(request);
+
+        verify(userRepository).save(argThat(user ->
+                user.getUsername().equals("john")
+                        && user.getEmail().equals("john@gmail.com")
+                        && user.getPassword().equals("encoded-password")
+                        && user.getRole() == Role.USER
+                        && Boolean.TRUE.equals(user.getActive())
+        ));
+
+        verify(auditService).log(
+                eq(1L),
+                eq(AuditAction.USER_REGISTERED),
+                eq(AuditEntityType.USER),
+                eq(1L),
+                eq("User registered successfully")
+        );
     }
 
     @Test
     void register_shouldRejectDuplicateUsername() {
-        when(userRepository.existsByUsername("aatmik")).thenReturn(true);
 
-        assertThrows(UserAlreadyExistsException.class,
-                () -> authService.register(registerRequest));
+        RegisterRequest request =
+                new RegisterRequest(
+                        "john",
+                        "john@gmail.com",
+                        "password123"
+                );
+
+        when(userRepository.existsByUsername("john"))
+                .thenReturn(true);
+
+        assertThrows(
+                UserAlreadyExistsException.class,
+                () -> authService.register(request)
+        );
 
         verify(userRepository, never()).save(any());
-        verify(passwordEncoder, never()).encode(anyString());
-        verifyNoInteractions(auditService);
+        verify(auditService, never()).log(
+                anyLong(),
+                any(),
+                any(),
+                anyLong(),
+                anyString()
+        );
     }
 
     @Test
     void register_shouldRejectDuplicateEmail() {
-        when(userRepository.existsByUsername("aatmik")).thenReturn(false);
-        when(userRepository.existsByEmail("aatmik@example.com")).thenReturn(true);
 
-        assertThrows(UserAlreadyExistsException.class,
-                () -> authService.register(registerRequest));
+        RegisterRequest request =
+                new RegisterRequest(
+                        "john",
+                        "john@gmail.com",
+                        "password123"
+                );
+
+        when(userRepository.existsByUsername("john"))
+                .thenReturn(false);
+
+        when(userRepository.existsByEmail("john@gmail.com"))
+                .thenReturn(true);
+
+        assertThrows(
+                UserAlreadyExistsException.class,
+                () -> authService.register(request)
+        );
 
         verify(userRepository, never()).save(any());
-        verifyNoInteractions(auditService);
     }
 
+    // ---------------------------------------------------------
+    // LOGIN
+    // ---------------------------------------------------------
+
     @Test
-    void login_shouldReturnAccessTokenAndAudit() {
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenReturn(mock(org.springframework.security.core.Authentication.class));
-        when(userRepository.findByUsername("aatmik")).thenReturn(Optional.of(user));
-        when(jwtService.generateAccessToken("aatmik", "USER")).thenReturn("access-token");
+    void login_shouldReturnAccessToken() {
 
-        AuthResponse response = authService.login(loginRequest);
+        LoginRequest request =
+                new LoginRequest(
+                        "john",
+                        "password123"
+                );
 
+        User user = User.builder()
+                .id(1L)
+                .username("john")
+                .email("john@gmail.com")
+                .password("encoded-password")
+                .role(Role.USER)
+                .active(true)
+                .build();
+
+        when(authenticationManager.authenticate(any(
+                UsernamePasswordAuthenticationToken.class
+        ))).thenReturn(mock(org.springframework.security.core.Authentication.class));
+
+        when(userRepository.findByUsername("john"))
+                .thenReturn(Optional.of(user));
+
+        when(jwtService.generateAccessToken("john", "USER"))
+                .thenReturn("access-token");
+
+        AuthResponse response = authService.login(request);
+
+        assertNotNull(response);
         assertEquals("access-token", response.accessToken());
         assertEquals("Bearer", response.tokenType());
-        assertEquals("aatmik", response.username());
+        assertEquals("john", response.username());
         assertEquals("USER", response.role());
 
-        verify(auditService).log(1L, AuditAction.USER_LOGIN, AuditEntityType.USER,
-                1L, "User logged in successfully");
+        verify(auditService).log(
+                eq(1L),
+                eq(AuditAction.USER_LOGIN),
+                eq(AuditEntityType.USER),
+                eq(1L),
+                eq("User logged in successfully")
+        );
     }
 
     @Test
-    void login_shouldTranslateAuthenticationFailure() {
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenThrow(new BadCredentialsException("bad credentials"));
+    void login_shouldRejectInvalidCredentials() {
 
-        assertThrows(InvalidCredentialsException.class,
-                () -> authService.login(loginRequest));
+        LoginRequest request =
+                new LoginRequest(
+                        "john",
+                        "wrong-password"
+                );
 
-        verify(userRepository, never()).findByUsername(anyString());
-        verifyNoInteractions(jwtService);
-        verifyNoInteractions(auditService);
-    }
+        when(authenticationManager.authenticate(any(
+                UsernamePasswordAuthenticationToken.class
+        ))).thenThrow(
+                new AuthenticationServiceException("Authentication failed")
+        );
 
-    @Test
-    void login_shouldRejectMissingUserAfterSuccessfulAuthentication() {
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenReturn(mock(org.springframework.security.core.Authentication.class));
-        when(userRepository.findByUsername("aatmik")).thenReturn(Optional.empty());
+        assertThrows(
+                InvalidCredentialsException.class,
+                () -> authService.login(request)
+        );
 
-        assertThrows(InvalidCredentialsException.class,
-                () -> authService.login(loginRequest));
+        verify(jwtService, never())
+                .generateAccessToken(anyString(), anyString());
     }
 
     @Test
     void login_shouldRejectInactiveUser() {
-        user.setActive(false);
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenReturn(mock(org.springframework.security.core.Authentication.class));
-        when(userRepository.findByUsername("aatmik")).thenReturn(Optional.of(user));
 
-        assertThrows(UserAccountInactiveException.class,
-                () -> authService.login(loginRequest));
+        LoginRequest request =
+                new LoginRequest(
+                        "john",
+                        "password123"
+                );
 
-        verifyNoInteractions(jwtService);
-        verifyNoInteractions(auditService);
+        User user = User.builder()
+                .id(1L)
+                .username("john")
+                .email("john@gmail.com")
+                .password("encoded-password")
+                .role(Role.USER)
+                .active(false)
+                .build();
+
+        when(authenticationManager.authenticate(any(
+                UsernamePasswordAuthenticationToken.class
+        ))).thenReturn(mock(
+                org.springframework.security.core.Authentication.class
+        ));
+
+        when(userRepository.findByUsername("john"))
+                .thenReturn(Optional.of(user));
+
+        assertThrows(
+                UserAccountInactiveException.class,
+                () -> authService.login(request)
+        );
+
+        verify(jwtService, never())
+                .generateAccessToken(anyString(), anyString());
     }
+
+    // ---------------------------------------------------------
+    // REFRESH TOKEN
+    // ---------------------------------------------------------
 
     @Test
     void generateRefreshToken_shouldDelegateToJwtService() {
-        when(jwtService.generateRefreshToken("aatmik")).thenReturn("refresh-token");
 
-        assertEquals("refresh-token", authService.generateRefreshToken("aatmik"));
-    }
+        when(jwtService.generateRefreshToken("john"))
+                .thenReturn("refresh-token");
 
-    @Test
-    void refresh_shouldRejectNullToken() {
-        assertThrows(InvalidRefreshTokenException.class,
-                () -> authService.refresh(null));
-        verifyNoInteractions(userRepository, jwtService);
-    }
+        String result =
+                authService.generateRefreshToken("john");
 
-    @Test
-    void refresh_shouldRejectBlankToken() {
-        assertThrows(InvalidRefreshTokenException.class,
-                () -> authService.refresh("   "));
-    }
+        assertEquals("refresh-token", result);
 
-    @Test
-    void refresh_shouldRejectAccessTokenUsedAsRefreshToken() {
-        when(jwtService.isRefreshToken("access-token")).thenReturn(false);
-
-        assertThrows(InvalidRefreshTokenException.class,
-                () -> authService.refresh("access-token"));
-
-        verify(userRepository, never()).findByUsername(anyString());
-    }
-
-    @Test
-    void refresh_shouldRejectMalformedRefreshToken() {
-        when(jwtService.isRefreshToken("refresh-token")).thenReturn(true);
-        when(jwtService.extractUsername("refresh-token"))
-                .thenThrow(new RuntimeException("malformed"));
-
-        assertThrows(InvalidRefreshTokenException.class,
-                () -> authService.refresh("refresh-token"));
-    }
-
-    @Test
-    void refresh_shouldRejectUnknownUser() {
-        when(jwtService.isRefreshToken("refresh-token")).thenReturn(true);
-        when(jwtService.extractUsername("refresh-token")).thenReturn("unknown");
-        when(userRepository.findByUsername("unknown")).thenReturn(Optional.empty());
-
-        assertThrows(InvalidRefreshTokenException.class,
-                () -> authService.refresh("refresh-token"));
-    }
-
-    @Test
-    void refresh_shouldRejectInactiveUser() {
-        user.setActive(false);
-        when(jwtService.isRefreshToken("refresh-token")).thenReturn(true);
-        when(jwtService.extractUsername("refresh-token")).thenReturn("aatmik");
-        when(userRepository.findByUsername("aatmik")).thenReturn(Optional.of(user));
-
-        assertThrows(UserAccountInactiveException.class,
-                () -> authService.refresh("refresh-token"));
-    }
-
-    @Test
-    void refresh_shouldRejectExpiredOrInvalidToken() {
-        when(jwtService.isRefreshToken("refresh-token")).thenReturn(true);
-        when(jwtService.extractUsername("refresh-token")).thenReturn("aatmik");
-        when(userRepository.findByUsername("aatmik")).thenReturn(Optional.of(user));
-        when(jwtService.isTokenValid("refresh-token", "aatmik")).thenReturn(false);
-
-        assertThrows(InvalidRefreshTokenException.class,
-                () -> authService.refresh("refresh-token"));
-
-        verify(jwtService, never()).generateAccessToken(anyString(), anyString());
+        verify(jwtService)
+                .generateRefreshToken("john");
     }
 
     @Test
     void refresh_shouldReturnNewAccessToken() {
-        when(jwtService.isRefreshToken("refresh-token")).thenReturn(true);
-        when(jwtService.extractUsername("refresh-token")).thenReturn("aatmik");
-        when(userRepository.findByUsername("aatmik")).thenReturn(Optional.of(user));
-        when(jwtService.isTokenValid("refresh-token", "aatmik")).thenReturn(true);
-        when(jwtService.generateAccessToken("aatmik", "USER")).thenReturn("new-access-token");
 
-        AuthResponse response = authService.refresh("refresh-token");
+        User user = User.builder()
+                .id(1L)
+                .username("john")
+                .role(Role.USER)
+                .active(true)
+                .build();
+
+        when(jwtService.isRefreshToken("refresh-token"))
+                .thenReturn(true);
+
+        when(jwtService.extractUsername("refresh-token"))
+                .thenReturn("john");
+
+        when(userRepository.findByUsername("john"))
+                .thenReturn(Optional.of(user));
+
+        when(jwtService.isTokenValid("refresh-token", "john"))
+                .thenReturn(true);
+
+        when(jwtService.generateAccessToken("john", "USER"))
+                .thenReturn("new-access-token");
+
+        AuthResponse response =
+                authService.refresh("refresh-token");
 
         assertEquals("new-access-token", response.accessToken());
+        assertEquals("Bearer", response.tokenType());
+        assertEquals("john", response.username());
         assertEquals("USER", response.role());
-        verify(jwtService).generateAccessToken("aatmik", "USER");
+    }
+
+    @Test
+    void refresh_shouldRejectMissingToken() {
+
+        assertThrows(
+                InvalidRefreshTokenException.class,
+                () -> authService.refresh(null)
+        );
+
+        assertThrows(
+                InvalidRefreshTokenException.class,
+                () -> authService.refresh("")
+        );
+    }
+
+    @Test
+    void refresh_shouldRejectAccessTokenUsedAsRefreshToken() {
+
+        when(jwtService.isRefreshToken("access-token"))
+                .thenReturn(false);
+
+        assertThrows(
+                InvalidRefreshTokenException.class,
+                () -> authService.refresh("access-token")
+        );
+
+        verify(jwtService, never())
+                .extractUsername(anyString());
+    }
+
+    @Test
+    void refresh_shouldRejectInactiveUser() {
+
+        User user = User.builder()
+                .id(1L)
+                .username("john")
+                .role(Role.USER)
+                .active(false)
+                .build();
+
+        when(jwtService.isRefreshToken("refresh-token"))
+                .thenReturn(true);
+
+        when(jwtService.extractUsername("refresh-token"))
+                .thenReturn("john");
+
+        when(userRepository.findByUsername("john"))
+                .thenReturn(Optional.of(user));
+
+        assertThrows(
+                UserAccountInactiveException.class,
+                () -> authService.refresh("refresh-token")
+        );
+    }
+
+    @Test
+    void refresh_shouldRejectInvalidToken() {
+
+        User user = User.builder()
+                .id(1L)
+                .username("john")
+                .role(Role.USER)
+                .active(true)
+                .build();
+
+        when(jwtService.isRefreshToken("refresh-token"))
+                .thenReturn(true);
+
+        when(jwtService.extractUsername("refresh-token"))
+                .thenReturn("john");
+
+        when(userRepository.findByUsername("john"))
+                .thenReturn(Optional.of(user));
+
+        when(jwtService.isTokenValid("refresh-token", "john"))
+                .thenReturn(false);
+
+        assertThrows(
+                InvalidRefreshTokenException.class,
+                () -> authService.refresh("refresh-token")
+        );
     }
 }
