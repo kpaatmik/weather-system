@@ -8,16 +8,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.kpaatmik.weather_application.entity.City;
 
 public interface CityRepository extends JpaRepository<City, Long> {
-    boolean existsByNameIgnoreCaseAndCountryIgnoreCase(
-            String name,
-            String country
-    );
+	boolean existsByNameIgnoreCaseAndCountryIgnoreCase(String name, String country);
 
-    Optional<City> findByNameIgnoreCaseAndCountryIgnoreCase(
-            String name,
-           String country
-    );
+	Optional<City> findByNameIgnoreCaseAndCountryIgnoreCase(String name, String country);
 
-    List<City> findAllByOrderByNameAsc();	
-    List<City> findAllByActiveTrueOrderByNameAsc();
+	List<City> findAllByOrderByNameAsc();
+
+	List<City> findAllByActiveTrueOrderByNameAsc();
 }

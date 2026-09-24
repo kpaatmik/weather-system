@@ -26,110 +26,81 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+	private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+	@Bean
+	public PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
 
-    @Bean
-    public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration configuration) throws Exception {
+	@Bean
+	public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
 
-        return configuration.getAuthenticationManager();
-    }
-    @Bean
-    public AuthenticationEntryPoint authenticationEntryPoint() {
+		return configuration.getAuthenticationManager();
+	}
 
-        return (request, response, authException) -> {
+	@Bean
+	public AuthenticationEntryPoint authenticationEntryPoint() {
 
-            response.setStatus(
-                    HttpServletResponse.SC_UNAUTHORIZED
-            );
+		return (request, response, authException) -> {
 
-            response.setContentType(
-                    "application/json"
-            );
+			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 
-            response.getWriter().write("""
-                {
-                    "status": 401,
-                    "message": "Authentication required"
-                }
-                """);
-        };
-    }
-    
-    @Bean
-    public AccessDeniedHandler accessDeniedHandler() {
+			response.setContentType("application/json");
 
-        return (request, response, accessDeniedException) -> {
+			response.getWriter().write("""
+					{
+					    "status": 401,
+					    "message": "Authentication required"
+					}
+					""");
+		};
+	}
 
-            response.setStatus(
-                    HttpServletResponse.SC_FORBIDDEN
-            );
+	@Bean
+	public AccessDeniedHandler accessDeniedHandler() {
 
-            response.setContentType(
-                    "application/json"
-            );
+		return (request, response, accessDeniedException) -> {
 
-            response.getWriter().write("""
-                {
-                    "status": 403,
-                    "message": "Access denied"
-                }
-                """);
-        };
-    }
-    @Bean
-    public SecurityFilterChain securityFilterChain(
-            HttpSecurity http) throws Exception {
+			response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 
-    	http
-        .csrf(csrf -> csrf.disable())
+			response.setContentType("application/json");
 
-        .sessionManagement(session ->
-            session.sessionCreationPolicy(
-                SessionCreationPolicy.STATELESS
-            )
-        )
+			response.getWriter().write("""
+					{
+					    "status": 403,
+					    "message": "Access denied"
+					}
+					""");
+		};
+	}
 
-        .exceptionHandling(exception -> exception
-            .authenticationEntryPoint(
-                authenticationEntryPoint()
-            )
-            .accessDeniedHandler(
-                accessDeniedHandler()
-            )
-        )
+	@Bean
+	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-        .authorizeHttpRequests(auth -> auth
+		http.csrf(csrf -> csrf.disable())
 
-            .requestMatchers(
-                "/api/auth/register",
-                "/api/auth/login",
-                "/api/auth/refresh",
-                "/api/auth/logout"
-            ).permitAll()
+				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-            .requestMatchers("/api/admin/**")
-            .hasRole("ADMIN")
+				.exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint())
+						.accessDeniedHandler(accessDeniedHandler()))
 
-            .requestMatchers(
-                "/api/cities/**"
-            )
-            .hasAnyRole("USER", "ADMIN")
+				.authorizeHttpRequests(auth -> auth
 
-            .anyRequest()
-            .authenticated()
-        )
+						.requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/refresh",
+								"/api/auth/logout")
+						.permitAll()
+						// Swagger / OpenAPI
+						.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
 
-        .addFilterBefore(
-            jwtAuthenticationFilter,
-            UsernamePasswordAuthenticationFilter.class
-        );
+						.requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-        return http.build();
-    }
+						.requestMatchers("/api/cities/**").hasAnyRole("USER", "ADMIN")
+
+						.anyRequest().authenticated())
+
+				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+		return http.build();
+	}
 }

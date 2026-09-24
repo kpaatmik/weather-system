@@ -11,7 +11,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -27,28 +26,26 @@ import lombok.Setter;
 @AllArgsConstructor
 public class AuditLog {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User user;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "user_id")
+	private User user;
 
-    @Column(nullable = false, length = 50)
-    private String action;
+	@Column(nullable = false, length = 50)
+	private String action;
 
-    @Column(nullable = false, length = 50)
-    private String entityType;
+	@Column(nullable = false, length = 50)
+	private String entityType;
 
-    private Long entityId;
+	private Long entityId;
 
-    @Column(columnDefinition = "TEXT")
-    private String details;
+	@Column(columnDefinition = "TEXT")
+	private String details;
 
-    @Column(nullable = false)
-    private LocalDateTime timestamp;
+	@Column(nullable = false)
+	private LocalDateTime timestamp;
 
-    @Column(length = 45)
-    private String ipAddress;
 }

@@ -2,13 +2,13 @@ package com.kpaatmik.weather_application.dto.response;
 
 public record AuthResponse(
 
-        String accessToken,
+		String accessToken,
 
-        String tokenType,
+		String tokenType,
 
-        String username,
+		String username,
 
-        String role
+		String role
 
 ) {
 }

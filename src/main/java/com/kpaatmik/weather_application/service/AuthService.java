@@ -9,6 +9,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.kpaatmik.weather_application.audit.AuditAction;
+import com.kpaatmik.weather_application.audit.AuditEntityType;
 import com.kpaatmik.weather_application.dto.request.LoginRequest;
 import com.kpaatmik.weather_application.dto.request.RegisterRequest;
 import com.kpaatmik.weather_application.dto.response.AuthResponse;
@@ -27,176 +29,114 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final UserRepository userRepository;
+	private final UserRepository userRepository;
 
-    private final PasswordEncoder passwordEncoder;
+	private final PasswordEncoder passwordEncoder;
 
-    private final AuthenticationManager authenticationManager;
+	private final AuthenticationManager authenticationManager;
 
-    private final JwtService jwtService;
+	private final JwtService jwtService;
 
+	private final AuditService auditService;
 
-    @Transactional
-    public void register(RegisterRequest request) {
+	@Transactional
+	public void register(RegisterRequest request) {
 
-        if (userRepository.existsByUsername(
-                request.username())) {
+		if (userRepository.existsByUsername(request.username())) {
 
-            throw new UserAlreadyExistsException(
-                    "Username already exists"
-            );
-        }
+			throw new UserAlreadyExistsException("Username already exists");
+		}
 
-        if (userRepository.existsByEmail(
-                request.email())) {
+		if (userRepository.existsByEmail(request.email())) {
 
-            throw new UserAlreadyExistsException(
-                    "Email already exists"
-            );
-        }
+			throw new UserAlreadyExistsException("Email already exists");
+		}
 
-        User user = User.builder()
-                .username(request.username())
-                .email(request.email())
-                .password(
-                        passwordEncoder.encode(
-                                request.password()
-                        )
-                )
-                .role(Role.USER)
-                .active(true)
-                .build();
+		User user = User.builder().username(request.username()).email(request.email())
+				.password(passwordEncoder.encode(request.password())).role(Role.USER).active(true).build();
 
-        userRepository.save(user);
-    }
+		User savedUser = userRepository.save(user);
+		auditService.log(savedUser.getId(), AuditAction.USER_REGISTERED, AuditEntityType.USER, savedUser.getId(),
+				"User registered successfully"
 
+		);
+	}
 
-    public AuthResponse login(LoginRequest request) {
+	@Transactional
+	public AuthResponse login(LoginRequest request) {
 
-        Authentication authentication;
+		Authentication authentication;
 
-        try {
+		try {
 
-            authentication =
-                    authenticationManager.authenticate(
-                            new UsernamePasswordAuthenticationToken(
-                                    request.username(),
-                                    request.password()
-                            )
-                    );
+			authentication = authenticationManager
+					.authenticate(new UsernamePasswordAuthenticationToken(request.username(), request.password()));
 
-        } catch (AuthenticationException ex) {
+		} catch (AuthenticationException ex) {
 
-            throw new InvalidCredentialsException(
-                    "Invalid username or password"
-            );
-        }
+			throw new InvalidCredentialsException("Invalid username or password");
+		}
 
-        User user = userRepository
-                .findByUsername(request.username())
-                .orElseThrow(() ->
-                        new InvalidCredentialsException(
-                                "Invalid username or password"
-                        )
-                );
+		User user = userRepository.findByUsername(request.username())
+				.orElseThrow(() -> new InvalidCredentialsException("Invalid username or password"));
 
-        if (!Boolean.TRUE.equals(user.getActive())) {
+		if (!Boolean.TRUE.equals(user.getActive())) {
 
-            throw new UserAccountInactiveException(
-                    "User account is inactive"
-            );
-        }
+			throw new UserAccountInactiveException("User account is inactive");
+		}
 
-        String accessToken =
-                jwtService.generateAccessToken(
-                        user.getUsername(),
-                        user.getRole().name()
-                );
+		String accessToken = jwtService.generateAccessToken(user.getUsername(), user.getRole().name());
+		auditService.log(user.getId(), AuditAction.USER_LOGIN, AuditEntityType.USER, user.getId(),
+				"User logged in successfully"
 
-        return new AuthResponse(
-                accessToken,
-                "Bearer",
-                user.getUsername(),
-                user.getRole().name()
-        );
-    }
+		);
 
+		return new AuthResponse(accessToken, "Bearer", user.getUsername(), user.getRole().name());
+	}
 
-    public String generateRefreshToken(String username) {
+	public String generateRefreshToken(String username) {
 
-        return jwtService.generateRefreshToken(username);
-    }
+		return jwtService.generateRefreshToken(username);
+	}
 
+	public AuthResponse refresh(String refreshToken) {
 
-    public AuthResponse refresh(String refreshToken) {
+		if (refreshToken == null || refreshToken.isBlank()) {
 
-        if (refreshToken == null ||
-                refreshToken.isBlank()) {
+			throw new InvalidRefreshTokenException("Refresh token is missing");
+		}
 
-            throw new InvalidRefreshTokenException(
-                    "Refresh token is missing"
-            );
-        }
+		if (!jwtService.isRefreshToken(refreshToken)) {
 
-        if (!jwtService.isRefreshToken(refreshToken)) {
+			throw new InvalidRefreshTokenException("Invalid refresh token");
+		}
 
-            throw new InvalidRefreshTokenException(
-                    "Invalid refresh token"
-            );
-        }
+		String username;
 
-        String username;
+		try {
 
-        try {
+			username = jwtService.extractUsername(refreshToken);
 
-            username =
-                    jwtService.extractUsername(
-                            refreshToken
-                    );
+		} catch (Exception ex) {
 
-        } catch (Exception ex) {
+			throw new InvalidRefreshTokenException("Invalid or expired refresh token");
+		}
 
-            throw new InvalidRefreshTokenException(
-                    "Invalid or expired refresh token"
-            );
-        }
+		User user = userRepository.findByUsername(username)
+				.orElseThrow(() -> new InvalidRefreshTokenException("Invalid refresh token"));
 
-        User user = userRepository
-                .findByUsername(username)
-                .orElseThrow(() ->
-                        new InvalidRefreshTokenException(
-                                "Invalid refresh token"
-                        )
-                );
+		if (!Boolean.TRUE.equals(user.getActive())) {
 
-        if (!Boolean.TRUE.equals(user.getActive())) {
+			throw new UserAccountInactiveException("User account is inactive");
+		}
 
-            throw new UserAccountInactiveException(
-                    "User account is inactive"
-            );
-        }
+		if (!jwtService.isTokenValid(refreshToken, username)) {
 
-        if (!jwtService.isTokenValid(
-                refreshToken,
-                username
-        )) {
+			throw new InvalidRefreshTokenException("Invalid or expired refresh token");
+		}
 
-            throw new InvalidRefreshTokenException(
-                    "Invalid or expired refresh token"
-            );
-        }
+		String accessToken = jwtService.generateAccessToken(user.getUsername(), user.getRole().name());
 
-        String accessToken =
-                jwtService.generateAccessToken(
-                        user.getUsername(),
-                        user.getRole().name()
-                );
-
-        return new AuthResponse(
-                accessToken,
-                "Bearer",
-                user.getUsername(),
-                user.getRole().name()
-        );
-    }
+		return new AuthResponse(accessToken, "Bearer", user.getUsername(), user.getRole().name());
+	}
 }

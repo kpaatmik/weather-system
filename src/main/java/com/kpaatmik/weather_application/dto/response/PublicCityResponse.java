@@ -1,4 +1,4 @@
-package com.kpaatmik.weather_application.dto;
+package com.kpaatmik.weather_application.dto.response;
 
 public record PublicCityResponse(
         Long id,

@@ -1,7 +1,5 @@
 package com.kpaatmik.weather_application.config;
 
-import java.time.Duration;
-
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,35 +10,26 @@ import org.springframework.web.client.RestClient;
 @EnableConfigurationProperties(OpenWeatherProperties.class)
 public class OpenWeatherConfig {
 
+	@Bean("weatherRestClient")
+	public RestClient weatherRestClient(OpenWeatherProperties properties) {
 
-    @Bean("weatherRestClient")
-    public RestClient weatherRestClient(OpenWeatherProperties properties) {
+		SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
 
-        SimpleClientHttpRequestFactory requestFactory =
-                new SimpleClientHttpRequestFactory();
+		requestFactory.setConnectTimeout(properties.getConnectTimeout());
+		requestFactory.setReadTimeout(properties.getReadTimeout());
 
-        requestFactory.setConnectTimeout(properties.getConnectTimeout());
-        requestFactory.setReadTimeout(properties.getReadTimeout());
+		return RestClient.builder().baseUrl(properties.getWeatherBaseUrl()).requestFactory(requestFactory).build();
+	}
 
-        return RestClient.builder()
-                .baseUrl(properties.getWeatherBaseUrl())
-                .requestFactory(requestFactory)
-                .build();
-    }
+	@Bean("geocodingRestClient")
 
-    @Bean("geocodingRestClient")
+	public RestClient geocodingRestClient(OpenWeatherProperties properties) {
 
-    public RestClient geocodingRestClient(OpenWeatherProperties properties) {
+		SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
 
-        SimpleClientHttpRequestFactory requestFactory =
-                new SimpleClientHttpRequestFactory();
+		requestFactory.setConnectTimeout(properties.getConnectTimeout());
+		requestFactory.setReadTimeout(properties.getReadTimeout());
 
-        requestFactory.setConnectTimeout(properties.getConnectTimeout());
-        requestFactory.setReadTimeout(properties.getReadTimeout());
-
-        return RestClient.builder()
-                .baseUrl(properties.getGeocodingBaseUrl())
-                .requestFactory(requestFactory)
-                .build();
-    }
+		return RestClient.builder().baseUrl(properties.getGeocodingBaseUrl()).requestFactory(requestFactory).build();
+	}
 }

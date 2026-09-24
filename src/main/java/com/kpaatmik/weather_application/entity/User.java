@@ -1,7 +1,5 @@
 package com.kpaatmik.weather_application.entity;
 
-
-
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
@@ -29,45 +27,45 @@ import lombok.Setter;
 @AllArgsConstructor
 public class User {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    @Column(nullable = false, unique = true, length = 100)
-    private String username;
+	@Column(nullable = false, unique = true, length = 100)
+	private String username;
 
-    @Column(nullable = false, unique = true, length = 150)
-    private String email;
+	@Column(nullable = false, unique = true, length = 150)
+	private String email;
 
-    @Column(nullable = false)
-    private String password;
+	@Column(nullable = false)
+	private String password;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private Role role;
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false, length = 20)
+	private Role role;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
+	@Column(nullable = false)
+	private LocalDateTime createdAt;
 
-    @Column(nullable = false)
-    private LocalDateTime updatedAt;
+	@Column(nullable = false)
+	private LocalDateTime updatedAt;
 
-    @Builder.Default
-    @Column(nullable = false)
-    private Boolean active = true;
+	@Builder.Default
+	@Column(nullable = false)
+	private Boolean active = true;
 
-    @PrePersist
-    protected void onCreate() {
+	@PrePersist
+	protected void onCreate() {
 
-        LocalDateTime now = LocalDateTime.now();
+		LocalDateTime now = LocalDateTime.now();
 
-        createdAt = now;
-        updatedAt = now;
-    }
+		createdAt = now;
+		updatedAt = now;
+	}
 
-    @PreUpdate
-    protected void onUpdate() {
+	@PreUpdate
+	protected void onUpdate() {
 
-        updatedAt = LocalDateTime.now();
-    }
+		updatedAt = LocalDateTime.now();
+	}
 }

@@ -1,4 +1,4 @@
-package com.kpaatmik.weather_application.dto;
+package com.kpaatmik.weather_application.dto.request;
 
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
