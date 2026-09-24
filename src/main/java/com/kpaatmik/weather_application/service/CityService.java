@@ -23,108 +23,255 @@ import com.kpaatmik.weather_application.repository.CityRepository;
 import com.kpaatmik.weather_application.security.SecurityUtil;
 
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @AllArgsConstructor
 public class CityService {
 
-	private final OpenWeatherGeocodingClient geocodingClient;
-	private final CityRepository cityRepository;
-	private final AuditService auditService;
+    private final OpenWeatherGeocodingClient geocodingClient;
+    private final CityRepository cityRepository;
+    private final AuditService auditService;
+    private final UserService userService;
 
-	private final UserService userService;
 
-	public List<CitySuggestionResponse> searchCities(String query) {
+    public List<CitySuggestionResponse> searchCities(String query) {
 
-		OpenWeatherGeocodingResponse[] results = geocodingClient.searchCity(query);
+        log.info("City search request received: query={}", query);
 
-		return Arrays.stream(results).map(result -> new CitySuggestionResponse(result.name(), result.state(),
-				result.country(), result.lat(), result.lon())
+        OpenWeatherGeocodingResponse[] results =
+                geocodingClient.searchCity(query);
 
-		).toList();
-	}
+        log.debug("Geocoding API returned {} results for query={}",
+                results.length, query);
 
-	@Transactional
-	public CityResponse createCity(CreateCityRequest request) {
+        List<CitySuggestionResponse> suggestions =
+                Arrays.stream(results)
+                        .map(result -> new CitySuggestionResponse(
+                                result.name(),
+                                result.state(),
+                                result.country(),
+                                result.lat(),
+                                result.lon()
+                        ))
+                        .toList();
 
-		boolean exists = cityRepository.existsByNameIgnoreCaseAndCountryIgnoreCase(request.name().strip(),
-				request.country().strip());
+        log.info("City search completed: query={}, results={}",
+                query, suggestions.size());
 
-		if (exists) {
-			throw new CityAlreadyExistsException(request.name(), request.country());
-		}
+        return suggestions;
+    }
 
-		City city = City.builder().name(request.name().strip().toUpperCase())
-				.state(request.state() != null ? request.state().strip().toUpperCase() : null)
-				.country(request.country().strip().toUpperCase()).latitude(request.latitude())
-				.longitude(request.longitude()).build();
 
-		try {
+    @Transactional
+    public CityResponse createCity(CreateCityRequest request) {
 
-			City savedCity = cityRepository.save(city);
+        log.info("Creating city: name={}, country={}",
+                request.name(), request.country());
 
-			auditService.log(userService.getUserId(SecurityUtil.getCurrentUsername()), AuditAction.CITY_ADDED,
-					AuditEntityType.CITY, savedCity.getId(), "City added: " + savedCity.getName()
+        boolean exists =
+                cityRepository.existsByNameIgnoreCaseAndCountryIgnoreCase(
+                        request.name().strip(),
+                        request.country().strip()
+                );
 
-			);
+        if (exists) {
 
-			return covertToCityResponse(savedCity);
+            log.warn(
+                    "City creation rejected: city already exists, name={}, country={}",
+                    request.name(),
+                    request.country()
+            );
 
-		} catch (DataIntegrityViolationException e) {
+            throw new CityAlreadyExistsException(
+                    request.name(),
+                    request.country()
+            );
+        }
 
-			throw new CityAlreadyExistsException(request.name(), request.country());
-		}
-	}
+        City city = City.builder()
+                .name(request.name().strip().toUpperCase())
+                .state(request.state() != null
+                        ? request.state().strip().toUpperCase()
+                        : null)
+                .country(request.country().strip().toUpperCase())
+                .latitude(request.latitude())
+                .longitude(request.longitude())
+                .build();
 
-	@Transactional(readOnly = true)
-	public List<CityResponse> getAllCities() {
+        try {
 
-		return cityRepository.findAllByOrderByNameAsc().stream().map(city -> covertToCityResponse(city)).toList();
-	}
+            City savedCity = cityRepository.save(city);
 
-	@Transactional(readOnly = true)
-	public List<PublicCityResponse> getActiveCities() {
+            log.info(
+                    "City created successfully: cityId={}, name={}, country={}",
+                    savedCity.getId(),
+                    savedCity.getName(),
+                    savedCity.getCountry()
+            );
 
-		return cityRepository.findAllByActiveTrueOrderByNameAsc().stream()
-				.map(city -> new PublicCityResponse(city.getId(), city.getName(), city.getState(), city.getCountry()))
-				.toList();
-	}
+            auditService.log(
+                    userService.getUserId(
+                            SecurityUtil.getCurrentUsername()
+                    ),
+                    AuditAction.CITY_ADDED,
+                    AuditEntityType.CITY,
+                    savedCity.getId(),
+                    "City added: " + savedCity.getName()
+            );
 
-	@Transactional
-	public void deleteCity(Long id) {
+            return covertToCityResponse(savedCity);
 
-		City city = cityRepository.findById(id).orElseThrow(() -> new CityNotFoundException(id));
-		String cityName = city.getName();
+        } catch (DataIntegrityViolationException e) {
 
-		cityRepository.delete(city);
-		auditService.log(userService.getUserId(SecurityUtil.getCurrentUsername()), AuditAction.CITY_DELETED,
-				AuditEntityType.CITY, null, "City Deleted: " + cityName
+            log.warn(
+                    "City creation failed due to data integrity violation: name={}, country={}",
+                    request.name(),
+                    request.country()
+            );
 
-		);
-	}
+            throw new CityAlreadyExistsException(
+                    request.name(),
+                    request.country()
+            );
+        }
+    }
 
-	@Transactional
-	@CacheEvict(value = "weather", key = "#cityId")
-	public CityResponse deactivateCity(Long cityId) {
 
-		City city = cityRepository.findById(cityId).orElseThrow(() -> new CityNotFoundException(cityId));
+    @Transactional(readOnly = true)
+    public List<CityResponse> getAllCities() {
 
-		city.setActive(false);
+        log.debug("Fetching all cities");
 
-		City updatedCity = cityRepository.save(city);
-		auditService.log(userService.getUserId(SecurityUtil.getCurrentUsername()), AuditAction.CITY_DEACTIVATED,
-				AuditEntityType.CITY, updatedCity.getId(), "City Deactivated: " + updatedCity.getName()
+        List<CityResponse> cities =
+                cityRepository.findAllByOrderByNameAsc()
+                        .stream()
+                        .map(this::covertToCityResponse)
+                        .toList();
 
-		);
+        log.info("Retrieved all cities: count={}", cities.size());
 
-		return covertToCityResponse(updatedCity);
-	}
+        return cities;
+    }
 
-	private CityResponse covertToCityResponse(City savedCity) {
 
-		return new CityResponse(savedCity.getId(), savedCity.getName(), savedCity.getState(), savedCity.getCountry(),
-				savedCity.getLatitude(), savedCity.getLongitude(), savedCity.getActive(), savedCity.getCreatedAt(),
-				savedCity.getUpdatedAt());
-	}
+    @Transactional(readOnly = true)
+    public List<PublicCityResponse> getActiveCities() {
 
+        log.debug("Fetching active cities");
+
+        List<PublicCityResponse> cities =
+                cityRepository.findAllByActiveTrueOrderByNameAsc()
+                        .stream()
+                        .map(city -> new PublicCityResponse(
+                                city.getId(),
+                                city.getName(),
+                                city.getState(),
+                                city.getCountry()
+                        ))
+                        .toList();
+
+        log.info("Retrieved active cities: count={}", cities.size());
+
+        return cities;
+    }
+
+
+    @Transactional
+    public void deleteCity(Long id) {
+
+        log.info("Deleting city: cityId={}", id);
+
+        City city = cityRepository.findById(id)
+                .orElseThrow(() -> {
+
+                    log.warn("City deletion failed: city not found, cityId={}",
+                            id);
+
+                    return new CityNotFoundException(id);
+                });
+
+        String cityName = city.getName();
+
+        cityRepository.delete(city);
+
+        auditService.log(
+                userService.getUserId(
+                        SecurityUtil.getCurrentUsername()
+                ),
+                AuditAction.CITY_DELETED,
+                AuditEntityType.CITY,
+                null,
+                "City Deleted: " + cityName
+        );
+
+        log.info(
+                "City deleted successfully: cityId={}, name={}",
+                id,
+                cityName
+        );
+    }
+
+
+    @Transactional
+    @CacheEvict(value = "weather", key = "#cityId")
+    public CityResponse deactivateCity(Long cityId) {
+
+        log.info("Deactivating city: cityId={}", cityId);
+
+        City city = cityRepository.findById(cityId)
+                .orElseThrow(() -> {
+
+                    log.warn(
+                            "City deactivation failed: city not found, cityId={}",
+                            cityId
+                    );
+
+                    return new CityNotFoundException(cityId);
+                });
+
+        city.setActive(false);
+
+        City updatedCity = cityRepository.save(city);
+
+        auditService.log(
+                userService.getUserId(
+                        SecurityUtil.getCurrentUsername()
+                ),
+                AuditAction.CITY_DEACTIVATED,
+                AuditEntityType.CITY,
+                updatedCity.getId(),
+                "City Deactivated: " + updatedCity.getName()
+        );
+
+        log.info(
+                "City deactivated successfully: cityId={}, name={}",
+                updatedCity.getId(),
+                updatedCity.getName()
+        );
+
+        log.debug(
+                "Weather cache evicted for cityId={}",
+                cityId
+        );
+
+        return covertToCityResponse(updatedCity);
+    }
+
+
+    private CityResponse covertToCityResponse(City savedCity) {
+
+        return new CityResponse(
+                savedCity.getId(),
+                savedCity.getName(),
+                savedCity.getState(),
+                savedCity.getCountry(),
+                savedCity.getLatitude(),
+                savedCity.getLongitude(),
+                savedCity.getActive(),
+                savedCity.getCreatedAt(),
+                savedCity.getUpdatedAt()
+        );
+    }
 }

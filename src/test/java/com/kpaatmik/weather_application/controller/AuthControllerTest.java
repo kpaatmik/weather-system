@@ -22,185 +22,100 @@ import org.mockito.Mockito;
 
 class AuthControllerTest {
 
-    private MockMvc mockMvc;
+	private MockMvc mockMvc;
 
-    private AuthService authService;
-    private AuditService auditService;
-    private UserService userService;
+	private AuthService authService;
+	private AuditService auditService;
+	private UserService userService;
 
-    @BeforeEach
-    void setUp() {
+	@BeforeEach
+	void setUp() {
 
-        authService = Mockito.mock(AuthService.class);
-        auditService = Mockito.mock(AuditService.class);
-        userService = Mockito.mock(UserService.class);
+		authService = Mockito.mock(AuthService.class);
+		auditService = Mockito.mock(AuditService.class);
+		userService = Mockito.mock(UserService.class);
 
-        AuthController controller =
-                new AuthController(
-                        authService,
-                        auditService,
-                        userService
-                );
+		AuthController controller = new AuthController(authService, auditService, userService);
 
-        mockMvc = MockMvcBuilders
-                .standaloneSetup(controller)
-                .build();
-    }
+		mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+	}
 
-    // ---------------------------------------------------------
-    // REGISTER
-    // ---------------------------------------------------------
+	// ---------------------------------------------------------
+	// REGISTER
+	// ---------------------------------------------------------
 
-    @Test
-    void register_shouldReturnSuccess() throws Exception {
+	@Test
+	void register_shouldReturnSuccess() throws Exception {
 
-        mockMvc.perform(
-                post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                    "username": "john",
-                                    "email": "john@gmail.com",
-                                    "password": "password123"
-                                }
-                                """)
-        )
-        .andExpect(status().isOk())
-        .andExpect(content()
-                .string("User registered successfully"));
+		mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content("""
+				{
+				    "username": "john",
+				    "email": "john@gmail.com",
+				    "password": "password123"
+				}
+				""")).andExpect(status().isOk()).andExpect(content().string("User registered successfully"));
 
-        verify(authService).register(any());
-    }
+		verify(authService).register(any());
+	}
 
-    // ---------------------------------------------------------
-    // LOGIN
-    // ---------------------------------------------------------
+	// ---------------------------------------------------------
+	// LOGIN
+	// ---------------------------------------------------------
 
-    @Test
-    void login_shouldReturnAccessTokenAndRefreshCookie()
-            throws Exception {
+	@Test
+	void login_shouldReturnAccessTokenAndRefreshCookie() throws Exception {
 
-        AuthResponse response =
-                new AuthResponse(
-                        "access-token",
-                        "Bearer",
-                        "john",
-                        "USER"
-                );
+		AuthResponse response = new AuthResponse("access-token", "Bearer", "john", "USER");
 
-        when(authService.login(any()))
-                .thenReturn(response);
+		when(authService.login(any())).thenReturn(response);
 
-        when(authService.generateRefreshToken("john"))
-                .thenReturn("refresh-token");
+		when(authService.generateRefreshToken("john")).thenReturn("refresh-token");
 
-        mockMvc.perform(
-                post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                    "username": "john",
-                                    "password": "password123"
-                                }
-                                """)
-        )
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.accessToken")
-                .value("access-token"))
-        .andExpect(jsonPath("$.tokenType")
-                .value("Bearer"))
-        .andExpect(jsonPath("$.username")
-                .value("john"))
-        .andExpect(jsonPath("$.role")
-                .value("USER"))
-        .andExpect(header().string(
-                "Set-Cookie",
-                org.hamcrest.Matchers.containsString(
-                        "refresh_token=refresh-token"
-                )
-        ))
-        .andExpect(header().string(
-                "Set-Cookie",
-                org.hamcrest.Matchers.containsString(
-                        "HttpOnly"
-                )
-        ))
-        .andExpect(header().string(
-                "Set-Cookie",
-                org.hamcrest.Matchers.containsString(
-                        "SameSite=Strict"
-                )
-        ));
+		mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content("""
+				{
+				    "username": "john",
+				    "password": "password123"
+				}
+				""")).andExpect(status().isOk()).andExpect(jsonPath("$.accessToken").value("access-token"))
+				.andExpect(jsonPath("$.tokenType").value("Bearer")).andExpect(jsonPath("$.username").value("john"))
+				.andExpect(jsonPath("$.role").value("USER"))
+				.andExpect(header().string("Set-Cookie",
+						org.hamcrest.Matchers.containsString("refresh_token=refresh-token")))
+				.andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("HttpOnly")))
+				.andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("SameSite=Strict")));
 
-        verify(authService)
-                .generateRefreshToken("john");
-    }
+		verify(authService).generateRefreshToken("john");
+	}
 
-    // ---------------------------------------------------------
-    // REFRESH
-    // ---------------------------------------------------------
+	// ---------------------------------------------------------
+	// REFRESH
+	// ---------------------------------------------------------
 
-    @Test
-    void refresh_withCookie_shouldReturnNewAccessToken()
-            throws Exception {
+	@Test
+	void refresh_withCookie_shouldReturnNewAccessToken() throws Exception {
 
-        AuthResponse response =
-                new AuthResponse(
-                        "new-access-token",
-                        "Bearer",
-                        "john",
-                        "USER"
-                );
+		AuthResponse response = new AuthResponse("new-access-token", "Bearer", "john", "USER");
 
-        when(authService.refresh("refresh-token"))
-                .thenReturn(response);
+		when(authService.refresh("refresh-token")).thenReturn(response);
 
-        mockMvc.perform(
-                post("/api/auth/refresh")
-                        .cookie(
-                                new jakarta.servlet.http.Cookie(
-                                        "refresh_token",
-                                        "refresh-token"
-                                )
-                        )
-        )
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.accessToken")
-                .value("new-access-token"))
-        .andExpect(jsonPath("$.username")
-                .value("john"));
-    }
+		mockMvc.perform(
+				post("/api/auth/refresh").cookie(new jakarta.servlet.http.Cookie("refresh_token", "refresh-token")))
+				.andExpect(status().isOk()).andExpect(jsonPath("$.accessToken").value("new-access-token"))
+				.andExpect(jsonPath("$.username").value("john"));
+	}
 
-  
+	// ---------------------------------------------------------
+	// LOGOUT
+	// ---------------------------------------------------------
 
-    // ---------------------------------------------------------
-    // LOGOUT
-    // ---------------------------------------------------------
+	@Test
+	void logout_shouldClearRefreshCookie() throws Exception {
 
-    @Test
-    void logout_shouldClearRefreshCookie()
-            throws Exception {
+		when(userService.getUserId(any())).thenReturn(1L);
 
-        when(userService.getUserId(any()))
-                .thenReturn(1L);
-
-        mockMvc.perform(
-                post("/api/auth/logout")
-        )
-        .andExpect(status().isOk())
-        .andExpect(content()
-                .string("Logged out successfully"))
-        .andExpect(header().string(
-                "Set-Cookie",
-                org.hamcrest.Matchers.containsString(
-                        "refresh_token="
-                )
-        ))
-        .andExpect(header().string(
-                "Set-Cookie",
-                org.hamcrest.Matchers.containsString(
-                        "Max-Age=0"
-                )
-        ));
-    }
+		mockMvc.perform(post("/api/auth/logout")).andExpect(status().isOk())
+				.andExpect(content().string("Logged out successfully"))
+				.andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("refresh_token=")))
+				.andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("Max-Age=0")));
+	}
 }

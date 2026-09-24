@@ -1,5 +1,6 @@
 package com.kpaatmik.weather_application.controller;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +28,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -43,7 +45,7 @@ public class AuthController {
 			@ApiResponse(responseCode = "409", description = "Username or email already exists") })
 	@PostMapping("/register")
 	public ResponseEntity<String> register(@Valid @RequestBody RegisterRequest request) {
-
+		log.info("Registration process initiated");
 		authService.register(request);
 
 		return ResponseEntity.ok("User registered successfully");
