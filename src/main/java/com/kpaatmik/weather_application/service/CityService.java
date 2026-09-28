@@ -179,6 +179,7 @@ public class CityService {
 
 
     @Transactional
+    @CacheEvict(value = "weather", key = "#id")
     public void deleteCity(Long id) {
 
         log.info("Deleting city: cityId={}", id);

@@ -1,16 +1,17 @@
 package com.kpaatmik.weather_application.exception;
 
-import jakarta.servlet.http.HttpServletRequest;
+import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.LocalDateTime;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -79,6 +80,22 @@ public class GlobalExceptionHandler {
 		response.put("path", request.getRequestURI());
 
 		return ResponseEntity.badRequest().body(response);
+	}
+
+	@ExceptionHandler(WeatherServiceException.class)
+	public ResponseEntity<ErrorResponse> handleWeatherServiceException(WeatherServiceException ex) {
+
+		ErrorResponse response = new ErrorResponse(503, ex.getMessage(), LocalDateTime.now(), null);
+
+		return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
+	}
+
+	@ExceptionHandler(DataAccessException.class)
+	public ResponseEntity<ErrorResponse> handleDatabaseException(DataAccessException ex) {
+
+		ErrorResponse response = new ErrorResponse(500, "A database error occurred", LocalDateTime.now(), null);
+
+		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
 	}
 
 	private ResponseEntity<Map<String, Object>> buildResponse(HttpStatus status, String error, String message,

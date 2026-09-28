@@ -104,6 +104,33 @@ class AuthControllerTest {
 				.andExpect(jsonPath("$.username").value("john"));
 	}
 
+	@Test
+	void refresh_withoutCookie_shouldPassNullToService() throws Exception {
+
+		AuthResponse response = new AuthResponse("new-access-token", "Bearer", "john", "USER");
+
+		when(authService.refresh(null)).thenReturn(response);
+
+		mockMvc.perform(post("/api/auth/refresh")).andExpect(status().isOk())
+				.andExpect(jsonPath("$.accessToken").value("new-access-token"));
+
+		verify(authService).refresh(null);
+	}
+
+	@Test
+	void refresh_withDifferentCookie_shouldPassNullToService() throws Exception {
+
+		AuthResponse response = new AuthResponse("new-access-token", "Bearer", "john", "USER");
+
+		when(authService.refresh(null)).thenReturn(response);
+
+		mockMvc.perform(
+				post("/api/auth/refresh").cookie(new jakarta.servlet.http.Cookie("some_other_cookie", "some-value")))
+				.andExpect(status().isOk()).andExpect(jsonPath("$.accessToken").value("new-access-token"));
+
+		verify(authService).refresh(null);
+	}
+
 	// ---------------------------------------------------------
 	// LOGOUT
 	// ---------------------------------------------------------
@@ -118,4 +145,5 @@ class AuthControllerTest {
 				.andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("refresh_token=")))
 				.andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("Max-Age=0")));
 	}
+
 }
