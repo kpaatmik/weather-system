@@ -1,0 +1,44 @@
+package com.kpaatmik.weatherapplication.client;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+
+import com.kpaatmik.weatherapplication.config.OpenWeatherProperties;
+import com.kpaatmik.weatherapplication.dto.response.OpenWeatherResponse;
+import com.kpaatmik.weatherapplication.exception.WeatherServiceException;
+
+import lombok.extern.log4j.Log4j;
+import lombok.extern.slf4j.Slf4j;
+
+@Component
+@Slf4j
+public class OpenWeatherClient {
+
+	private final RestClient restClient;
+	private final OpenWeatherProperties properties;
+
+	public OpenWeatherClient(@Qualifier("weatherRestClient") RestClient restClient, OpenWeatherProperties properties) {
+
+		this.restClient = restClient;
+		this.properties = properties;
+	}
+
+	public OpenWeatherResponse getWeather(Double latitude, Double longitude) {
+
+		try {
+			return restClient.get()
+					.uri(uriBuilder -> uriBuilder.path("/weather").queryParam("lat", latitude)
+							.queryParam("lon", longitude).queryParam("appid", properties.getApiKey())
+							.queryParam("units", "metric").build())
+					.retrieve().body(OpenWeatherResponse.class);
+		} catch (ResourceAccessException ex) {
+			throw new WeatherServiceException("Unable to connect to OpenWeather API", ex);
+		} catch (RestClientException ex) {
+			throw new WeatherServiceException("OpenWeather API returned an error", ex);
+
+		}
+	}
+}
