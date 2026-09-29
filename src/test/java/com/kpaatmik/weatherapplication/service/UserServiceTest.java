@@ -15,88 +15,73 @@ import com.kpaatmik.weatherapplication.security.SecurityUtil;
 
 class UserServiceTest {
 
-    private UserRepository userRepository;
-    private UserService userService;
+	private UserRepository userRepository;
+	private UserService userService;
 
-    @BeforeEach
-    void setUp() {
-        userRepository = mock(UserRepository.class);
-        userService = new UserService(userRepository);
-    }
+	@BeforeEach
+	void setUp() {
+		userRepository = mock(UserRepository.class);
+		userService = new UserService(userRepository);
+	}
 
-    // ---------------------------------------------------------
-    // USER EXISTS
-    // ---------------------------------------------------------
+	// ---------------------------------------------------------
+	// USER EXISTS
+	// ---------------------------------------------------------
 
-    @Test
-    void getUserId_shouldReturnUserId_whenUserExists() {
+	@Test
+	void getUserId_shouldReturnUserId_whenUserExists() {
 
-        // Arrange
-        String username = "aatmik";
+		// Arrange
+		String username = "aatmik";
 
-        User user = new User();
-        user.setId(1L);
-        user.setUsername(username);
+		User user = new User();
+		user.setId(1L);
+		user.setUsername(username);
 
-        when(userRepository.findByUsername(username))
-                .thenReturn(Optional.of(user));
+		when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
 
-        try (MockedStatic<SecurityUtil> securityUtil =
-                     mockStatic(SecurityUtil.class)) {
+		try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
 
-            securityUtil
-                    .when(SecurityUtil::getCurrentUsername)
-                    .thenReturn(username);
+			securityUtil.when(SecurityUtil::getCurrentUsername).thenReturn(username);
 
-            // Act
-            Long result = userService.getUserId(username);
+			// Act
+			Long result = userService.getUserId(username);
 
-            // Assert
-            assertNotNull(result);
-            assertEquals(1L, result);
+			// Assert
+			assertNotNull(result);
+			assertEquals(1L, result);
 
-            verify(userRepository)
-                    .findByUsername(username);
+			verify(userRepository).findByUsername(username);
 
-            securityUtil.verify(
-                    SecurityUtil::getCurrentUsername
-            );
-        }
-    }
+			securityUtil.verify(SecurityUtil::getCurrentUsername);
+		}
+	}
 
+	// ---------------------------------------------------------
+	// USER DOES NOT EXIST
+	// ---------------------------------------------------------
 
-    // ---------------------------------------------------------
-    // USER DOES NOT EXIST
-    // ---------------------------------------------------------
+	@Test
+	void getUserId_shouldReturnNull_whenUserDoesNotExist() {
 
-    @Test
-    void getUserId_shouldReturnNull_whenUserDoesNotExist() {
+		// Arrange
+		String username = "unknown";
 
-        // Arrange
-        String username = "unknown";
+		when(userRepository.findByUsername(username)).thenReturn(Optional.empty());
 
-        when(userRepository.findByUsername(username))
-                .thenReturn(Optional.empty());
+		try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
 
-        try (MockedStatic<SecurityUtil> securityUtil =
-                     mockStatic(SecurityUtil.class)) {
+			securityUtil.when(SecurityUtil::getCurrentUsername).thenReturn(username);
 
-            securityUtil
-                    .when(SecurityUtil::getCurrentUsername)
-                    .thenReturn(username);
+			// Act
+			Long result = userService.getUserId(username);
 
-            // Act
-            Long result = userService.getUserId(username);
+			// Assert
+			assertNull(result);
 
-            // Assert
-            assertNull(result);
+			verify(userRepository).findByUsername(username);
 
-            verify(userRepository)
-                    .findByUsername(username);
-
-            securityUtil.verify(
-                    SecurityUtil::getCurrentUsername
-            );
-        }
-    }
+			securityUtil.verify(SecurityUtil::getCurrentUsername);
+		}
+	}
 }

@@ -17,72 +17,50 @@ import com.kpaatmik.weatherapplication.security.CustomUserDetailsService;
 
 class CustomUserDetailsServiceTest {
 
-    private UserRepository userRepository;
-    private CustomUserDetailsService userDetailsService;
+	private UserRepository userRepository;
+	private CustomUserDetailsService userDetailsService;
 
-    @BeforeEach
-    void setUp() {
+	@BeforeEach
+	void setUp() {
 
-        userRepository = mock(UserRepository.class);
+		userRepository = mock(UserRepository.class);
 
-        userDetailsService =
-                new CustomUserDetailsService(userRepository);
-    }
+		userDetailsService = new CustomUserDetailsService(userRepository);
+	}
 
-    @Test
-    void loadUserByUsername_shouldReturnUserDetails() {
+	@Test
+	void loadUserByUsername_shouldReturnUserDetails() {
 
-        User user = User.builder()
-                .username("aatmik")
-                .password("encoded-password")
-                .role(Role.USER)
-                .active(true)
-                .build();
+		User user = User.builder().username("aatmik").password("encoded-password").role(Role.USER).active(true).build();
 
-        when(userRepository.findByUsername("aatmik"))
-                .thenReturn(Optional.of(user));
+		when(userRepository.findByUsername("aatmik")).thenReturn(Optional.of(user));
 
-        UserDetails result =
-                userDetailsService.loadUserByUsername("aatmik");
+		UserDetails result = userDetailsService.loadUserByUsername("aatmik");
 
-        assertEquals("aatmik", result.getUsername());
-        assertEquals("encoded-password", result.getPassword());
-        assertTrue(result.isEnabled());
-        assertTrue(
-                result.getAuthorities()
-                        .stream()
-                        .anyMatch(a -> a.getAuthority().equals("ROLE_USER"))
-        );
-    }
+		assertEquals("aatmik", result.getUsername());
+		assertEquals("encoded-password", result.getPassword());
+		assertTrue(result.isEnabled());
+		assertTrue(result.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_USER")));
+	}
 
-    @Test
-    void loadUserByUsername_shouldDisableInactiveUser() {
+	@Test
+	void loadUserByUsername_shouldDisableInactiveUser() {
 
-        User user = User.builder()
-                .username("aatmik")
-                .password("encoded-password")
-                .role(Role.USER)
-                .active(false)
-                .build();
+		User user = User.builder().username("aatmik").password("encoded-password").role(Role.USER).active(false)
+				.build();
 
-        when(userRepository.findByUsername("aatmik"))
-                .thenReturn(Optional.of(user));
+		when(userRepository.findByUsername("aatmik")).thenReturn(Optional.of(user));
 
-        UserDetails result =
-                userDetailsService.loadUserByUsername("aatmik");
+		UserDetails result = userDetailsService.loadUserByUsername("aatmik");
 
-        assertFalse(result.isEnabled());
-    }
+		assertFalse(result.isEnabled());
+	}
 
-    @Test
-    void loadUserByUsername_shouldThrowExceptionWhenUserNotFound() {
+	@Test
+	void loadUserByUsername_shouldThrowExceptionWhenUserNotFound() {
 
-        when(userRepository.findByUsername("aatmik"))
-                .thenReturn(Optional.empty());
+		when(userRepository.findByUsername("aatmik")).thenReturn(Optional.empty());
 
-        assertThrows(
-                UsernameNotFoundException.class,
-                () -> userDetailsService.loadUserByUsername("aatmik")
-        );
-    }
+		assertThrows(UsernameNotFoundException.class, () -> userDetailsService.loadUserByUsername("aatmik"));
+	}
 }

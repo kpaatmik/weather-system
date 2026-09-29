@@ -17,215 +17,135 @@ import static org.mockito.Mockito.*;
 
 class AuditServiceTest {
 
-    private AuditLogRepository auditLogRepository;
-    private UserRepository userRepository;
-    private AuditService auditService;
+	private AuditLogRepository auditLogRepository;
+	private UserRepository userRepository;
+	private AuditService auditService;
 
-    @BeforeEach
-    void setUp() {
+	@BeforeEach
+	void setUp() {
 
-        auditLogRepository = mock(AuditLogRepository.class);
-        userRepository = mock(UserRepository.class);
+		auditLogRepository = mock(AuditLogRepository.class);
+		userRepository = mock(UserRepository.class);
 
-        auditService = new AuditService(
-                auditLogRepository,
-                userRepository
-        );
-    }
+		auditService = new AuditService(auditLogRepository, userRepository);
+	}
 
+	// =========================================================
+	// USER ID PROVIDED + USER EXISTS
+	// =========================================================
 
-    // =========================================================
-    // USER ID PROVIDED + USER EXISTS
-    // =========================================================
+	@Test
+	void log_shouldSaveAuditLogWithUser_whenUserExists() {
 
-    @Test
-    void log_shouldSaveAuditLogWithUser_whenUserExists() {
+		// Arrange
+		Long userId = 1L;
 
-        // Arrange
-        Long userId = 1L;
+		User user = new User();
+		user.setId(userId);
+		user.setUsername("aatmik");
 
-        User user = new User();
-        user.setId(userId);
-        user.setUsername("aatmik");
+		when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
-        when(userRepository.findById(userId))
-                .thenReturn(Optional.of(user));
+		// Act
+		auditService.log(userId, AuditAction.WEATHER_SEARCHED, AuditEntityType.WEATHER, 10L, "Weather searched: 10");
 
-        // Act
-        auditService.log(
-                userId,
-                AuditAction.WEATHER_SEARCHED,
-                AuditEntityType.WEATHER,
-                10L,
-                "Weather searched: 10"
-        );
+		// Assert
+		verify(userRepository).findById(userId);
 
-        // Assert
-        verify(userRepository)
-                .findById(userId);
+		verify(auditLogRepository).save(any(AuditLog.class));
 
-        verify(auditLogRepository)
-                .save(any(AuditLog.class));
+		// Capture the actual AuditLog that was saved
+		var captor = org.mockito.ArgumentCaptor.forClass(AuditLog.class);
 
-        // Capture the actual AuditLog that was saved
-        var captor = org.mockito.ArgumentCaptor.forClass(AuditLog.class);
+		verify(auditLogRepository).save(captor.capture());
 
-        verify(auditLogRepository)
-                .save(captor.capture());
+		AuditLog savedAuditLog = captor.getValue();
 
-        AuditLog savedAuditLog = captor.getValue();
+		assertNotNull(savedAuditLog);
 
-        assertNotNull(savedAuditLog);
+		assertSame(user, savedAuditLog.getUser());
 
-        assertSame(
-                user,
-                savedAuditLog.getUser()
-        );
+		assertEquals(AuditAction.WEATHER_SEARCHED.name(), savedAuditLog.getAction());
 
-        assertEquals(
-                AuditAction.WEATHER_SEARCHED.name(),
-                savedAuditLog.getAction()
-        );
+		assertEquals(AuditEntityType.WEATHER.name(), savedAuditLog.getEntityType());
 
-        assertEquals(
-                AuditEntityType.WEATHER.name(),
-                savedAuditLog.getEntityType()
-        );
+		assertEquals(10L, savedAuditLog.getEntityId());
 
-        assertEquals(
-                10L,
-                savedAuditLog.getEntityId()
-        );
+		assertEquals("Weather searched: 10", savedAuditLog.getDetails());
 
-        assertEquals(
-                "Weather searched: 10",
-                savedAuditLog.getDetails()
-        );
+		assertNotNull(savedAuditLog.getTimestamp());
+	}
 
-        assertNotNull(
-                savedAuditLog.getTimestamp()
-        );
-    }
+	// =========================================================
+	// USER ID PROVIDED + USER DOES NOT EXIST
+	// =========================================================
 
+	@Test
+	void log_shouldSaveAuditLogWithNullUser_whenUserDoesNotExist() {
 
-    // =========================================================
-    // USER ID PROVIDED + USER DOES NOT EXIST
-    // =========================================================
+		// Arrange
+		Long userId = 99L;
 
-    @Test
-    void log_shouldSaveAuditLogWithNullUser_whenUserDoesNotExist() {
+		when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
-        // Arrange
-        Long userId = 99L;
+		// Act
+		auditService.log(userId, AuditAction.WEATHER_SEARCHED, AuditEntityType.WEATHER, 20L, "Weather searched: 20");
 
-        when(userRepository.findById(userId))
-                .thenReturn(Optional.empty());
+		// Assert
+		verify(userRepository).findById(userId);
 
-        // Act
-        auditService.log(
-                userId,
-                AuditAction.WEATHER_SEARCHED,
-                AuditEntityType.WEATHER,
-                20L,
-                "Weather searched: 20"
-        );
+		var captor = org.mockito.ArgumentCaptor.forClass(AuditLog.class);
 
-        // Assert
-        verify(userRepository)
-                .findById(userId);
+		verify(auditLogRepository).save(captor.capture());
 
-        var captor = org.mockito.ArgumentCaptor.forClass(AuditLog.class);
+		AuditLog savedAuditLog = captor.getValue();
 
-        verify(auditLogRepository)
-                .save(captor.capture());
+		assertNotNull(savedAuditLog);
 
-        AuditLog savedAuditLog = captor.getValue();
+		assertNull(savedAuditLog.getUser());
 
-        assertNotNull(savedAuditLog);
+		assertEquals(AuditAction.WEATHER_SEARCHED.name(), savedAuditLog.getAction());
 
-        assertNull(
-                savedAuditLog.getUser()
-        );
+		assertEquals(AuditEntityType.WEATHER.name(), savedAuditLog.getEntityType());
 
-        assertEquals(
-                AuditAction.WEATHER_SEARCHED.name(),
-                savedAuditLog.getAction()
-        );
+		assertEquals(20L, savedAuditLog.getEntityId());
 
-        assertEquals(
-                AuditEntityType.WEATHER.name(),
-                savedAuditLog.getEntityType()
-        );
+		assertEquals("Weather searched: 20", savedAuditLog.getDetails());
 
-        assertEquals(
-                20L,
-                savedAuditLog.getEntityId()
-        );
+		assertNotNull(savedAuditLog.getTimestamp());
+	}
 
-        assertEquals(
-                "Weather searched: 20",
-                savedAuditLog.getDetails()
-        );
+	// =========================================================
+	// USER ID IS NULL
+	// =========================================================
 
-        assertNotNull(
-                savedAuditLog.getTimestamp()
-        );
-    }
+	@Test
+	void log_shouldNotLookupUser_whenUserIdIsNull() {
 
+		// Act
+		auditService.log(null, AuditAction.USER_REGISTERED, AuditEntityType.USER, null, "User registered");
 
-    // =========================================================
-    // USER ID IS NULL
-    // =========================================================
+		// Assert
+		verifyNoInteractions(userRepository);
 
-    @Test
-    void log_shouldNotLookupUser_whenUserIdIsNull() {
+		var captor = org.mockito.ArgumentCaptor.forClass(AuditLog.class);
 
-        // Act
-        auditService.log(
-                null,
-                AuditAction.USER_REGISTERED,
-                AuditEntityType.USER,
-                null,
-                "User registered"
-        );
+		verify(auditLogRepository).save(captor.capture());
 
-        // Assert
-        verifyNoInteractions(userRepository);
+		AuditLog savedAuditLog = captor.getValue();
 
-        var captor = org.mockito.ArgumentCaptor.forClass(AuditLog.class);
+		assertNotNull(savedAuditLog);
 
-        verify(auditLogRepository)
-                .save(captor.capture());
+		assertNull(savedAuditLog.getUser());
 
-        AuditLog savedAuditLog = captor.getValue();
+		assertEquals(AuditAction.USER_REGISTERED.name(), savedAuditLog.getAction());
 
-        assertNotNull(savedAuditLog);
+		assertEquals(AuditEntityType.USER.name(), savedAuditLog.getEntityType());
 
-        assertNull(
-                savedAuditLog.getUser()
-        );
+		assertNull(savedAuditLog.getEntityId());
 
-        assertEquals(
-                AuditAction.USER_REGISTERED.name(),
-                savedAuditLog.getAction()
-        );
+		assertEquals("User registered", savedAuditLog.getDetails());
 
-        assertEquals(
-                AuditEntityType.USER.name(),
-                savedAuditLog.getEntityType()
-        );
-
-        assertNull(
-                savedAuditLog.getEntityId()
-        );
-
-        assertEquals(
-                "User registered",
-                savedAuditLog.getDetails()
-        );
-
-        assertNotNull(
-                savedAuditLog.getTimestamp()
-        );
-    }
+		assertNotNull(savedAuditLog.getTimestamp());
+	}
 }

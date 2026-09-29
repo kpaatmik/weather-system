@@ -19,460 +19,299 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 
 class GlobalExceptionHandlerTest {
 
-    private GlobalExceptionHandler exceptionHandler;
+	private GlobalExceptionHandler exceptionHandler;
 
-    @BeforeEach
-    void setUp() {
-        exceptionHandler = new GlobalExceptionHandler();
-    }
+	@BeforeEach
+	void setUp() {
+		exceptionHandler = new GlobalExceptionHandler();
+	}
 
-    // =========================================================
-    // USER ALREADY EXISTS
-    // =========================================================
+	// =========================================================
+	// USER ALREADY EXISTS
+	// =========================================================
 
-    @Test
-    void handleUserAlreadyExists_shouldReturn409() {
+	@Test
+	void handleUserAlreadyExists_shouldReturn409() {
 
-        UserAlreadyExistsException exception =
-                mock(UserAlreadyExistsException.class);
+		UserAlreadyExistsException exception = mock(UserAlreadyExistsException.class);
 
-        when(exception.getMessage())
-                .thenReturn("Username already exists");
+		when(exception.getMessage()).thenReturn("Username already exists");
 
-        ResponseEntity<ErrorResponse> response =
-                exceptionHandler.handleUserAlreadyExists(exception);
+		ResponseEntity<ErrorResponse> response = exceptionHandler.handleUserAlreadyExists(exception);
 
-        assertEquals(
-                HttpStatus.CONFLICT,
-                response.getStatusCode()
-        );
+		assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
 
-        assertNotNull(response.getBody());
+		assertNotNull(response.getBody());
 
-        ErrorResponse body = response.getBody();
+		ErrorResponse body = response.getBody();
 
-        assertEquals(409, body.status());
+		assertEquals(409, body.status());
 
-        assertEquals(
-                "Username already exists",
-                body.message()
-        );
+		assertEquals("Username already exists", body.message());
 
-        assertNotNull(body.timestamp());
+		assertNotNull(body.timestamp());
 
-        assertNull(body.errors());
-    }
+		assertNull(body.errors());
+	}
 
+	// =========================================================
+	// INVALID CREDENTIALS
+	// =========================================================
 
-    // =========================================================
-    // INVALID CREDENTIALS
-    // =========================================================
+	@Test
+	void handleInvalidCredentials_shouldReturn401() {
 
-    @Test
-    void handleInvalidCredentials_shouldReturn401() {
+		InvalidCredentialsException exception = mock(InvalidCredentialsException.class);
 
-        InvalidCredentialsException exception =
-                mock(InvalidCredentialsException.class);
+		when(exception.getMessage()).thenReturn("Invalid username or password");
 
-        when(exception.getMessage())
-                .thenReturn("Invalid username or password");
+		ResponseEntity<ErrorResponse> response = exceptionHandler.handleInvalidCredentials(exception);
 
-        ResponseEntity<ErrorResponse> response =
-                exceptionHandler.handleInvalidCredentials(exception);
+		assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
 
-        assertEquals(
-                HttpStatus.UNAUTHORIZED,
-                response.getStatusCode()
-        );
+		assertNotNull(response.getBody());
 
-        assertNotNull(response.getBody());
+		ErrorResponse body = response.getBody();
 
-        ErrorResponse body = response.getBody();
+		assertEquals(401, body.status());
 
-        assertEquals(401, body.status());
+		assertEquals("Invalid username or password", body.message());
 
-        assertEquals(
-                "Invalid username or password",
-                body.message()
-        );
+		assertNotNull(body.timestamp());
 
-        assertNotNull(body.timestamp());
+		assertNull(body.errors());
+	}
 
-        assertNull(body.errors());
-    }
+	// =========================================================
+	// INVALID REFRESH TOKEN
+	// =========================================================
 
+	@Test
+	void handleInvalidRefreshToken_shouldReturn401() {
 
-    // =========================================================
-    // INVALID REFRESH TOKEN
-    // =========================================================
+		InvalidRefreshTokenException exception = mock(InvalidRefreshTokenException.class);
 
-    @Test
-    void handleInvalidRefreshToken_shouldReturn401() {
+		when(exception.getMessage()).thenReturn("Invalid refresh token");
 
-        InvalidRefreshTokenException exception =
-                mock(InvalidRefreshTokenException.class);
+		ResponseEntity<ErrorResponse> response = exceptionHandler.handleInvalidRefreshToken(exception);
 
-        when(exception.getMessage())
-                .thenReturn("Invalid refresh token");
+		assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
 
-        ResponseEntity<ErrorResponse> response =
-                exceptionHandler.handleInvalidRefreshToken(exception);
+		assertNotNull(response.getBody());
 
-        assertEquals(
-                HttpStatus.UNAUTHORIZED,
-                response.getStatusCode()
-        );
+		ErrorResponse body = response.getBody();
 
-        assertNotNull(response.getBody());
+		assertEquals(401, body.status());
 
-        ErrorResponse body = response.getBody();
+		assertEquals("Invalid refresh token", body.message());
 
-        assertEquals(401, body.status());
+		assertNotNull(body.timestamp());
 
-        assertEquals(
-                "Invalid refresh token",
-                body.message()
-        );
+		assertNull(body.errors());
+	}
 
-        assertNotNull(body.timestamp());
+	// =========================================================
+	// INACTIVE USER ACCOUNT
+	// =========================================================
 
-        assertNull(body.errors());
-    }
+	@Test
+	void handleInactiveAccount_shouldReturn401() {
 
+		UserAccountInactiveException exception = mock(UserAccountInactiveException.class);
 
-    // =========================================================
-    // INACTIVE USER ACCOUNT
-    // =========================================================
+		when(exception.getMessage()).thenReturn("User account is inactive");
 
-    @Test
-    void handleInactiveAccount_shouldReturn401() {
+		ResponseEntity<ErrorResponse> response = exceptionHandler.handleInactiveAccount(exception);
 
-        UserAccountInactiveException exception =
-                mock(UserAccountInactiveException.class);
+		assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
 
-        when(exception.getMessage())
-                .thenReturn("User account is inactive");
+		assertNotNull(response.getBody());
 
-        ResponseEntity<ErrorResponse> response =
-                exceptionHandler.handleInactiveAccount(exception);
+		ErrorResponse body = response.getBody();
 
-        assertEquals(
-                HttpStatus.UNAUTHORIZED,
-                response.getStatusCode()
-        );
+		assertEquals(401, body.status());
 
-        assertNotNull(response.getBody());
+		assertEquals("User account is inactive", body.message());
 
-        ErrorResponse body = response.getBody();
+		assertNotNull(body.timestamp());
 
-        assertEquals(401, body.status());
+		assertNull(body.errors());
+	}
 
-        assertEquals(
-                "User account is inactive",
-                body.message()
-        );
+	// =========================================================
+	// CITY NOT FOUND
+	// =========================================================
 
-        assertNotNull(body.timestamp());
+	@Test
+	void handleCityNotFound_shouldReturn404() {
 
-        assertNull(body.errors());
-    }
+		CityNotFoundException exception = mock(CityNotFoundException.class);
 
+		when(exception.getMessage()).thenReturn("City not found");
 
-    // =========================================================
-    // CITY NOT FOUND
-    // =========================================================
+		HttpServletRequest request = mock(HttpServletRequest.class);
 
-    @Test
-    void handleCityNotFound_shouldReturn404() {
+		when(request.getRequestURI()).thenReturn("/api/cities/weather/10");
 
-        CityNotFoundException exception =
-                mock(CityNotFoundException.class);
+		ResponseEntity<Map<String, Object>> response = exceptionHandler.handleCityNotFound(exception, request);
 
-        when(exception.getMessage())
-                .thenReturn("City not found");
+		assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
 
-        HttpServletRequest request =
-                mock(HttpServletRequest.class);
+		assertNotNull(response.getBody());
 
-        when(request.getRequestURI())
-                .thenReturn("/api/cities/weather/10");
+		Map<String, Object> body = response.getBody();
 
-        ResponseEntity<Map<String, Object>> response =
-                exceptionHandler.handleCityNotFound(
-                        exception,
-                        request
-                );
+		assertEquals(404, body.get("status"));
 
-        assertEquals(
-                HttpStatus.NOT_FOUND,
-                response.getStatusCode()
-        );
+		assertEquals("CITY_NOT_FOUND", body.get("error"));
 
-        assertNotNull(response.getBody());
+		assertEquals("City not found", body.get("message"));
 
-        Map<String, Object> body = response.getBody();
+		assertEquals("/api/cities/weather/10", body.get("path"));
 
-        assertEquals(
-                404,
-                body.get("status")
-        );
+		assertNotNull(body.get("timestamp"));
+	}
 
-        assertEquals(
-                "CITY_NOT_FOUND",
-                body.get("error")
-        );
+	// =========================================================
+	// CITY ALREADY EXISTS
+	// =========================================================
 
-        assertEquals(
-                "City not found",
-                body.get("message")
-        );
+	@Test
+	void handleCityAlreadyExists_shouldReturn409() {
 
-        assertEquals(
-                "/api/cities/weather/10",
-                body.get("path")
-        );
+		CityAlreadyExistsException exception = mock(CityAlreadyExistsException.class);
 
-        assertNotNull(body.get("timestamp"));
-    }
+		when(exception.getMessage()).thenReturn("City already exists");
 
+		HttpServletRequest request = mock(HttpServletRequest.class);
 
-    // =========================================================
-    // CITY ALREADY EXISTS
-    // =========================================================
+		when(request.getRequestURI()).thenReturn("/api/admin/cities/save");
 
-    @Test
-    void handleCityAlreadyExists_shouldReturn409() {
+		ResponseEntity<Map<String, Object>> response = exceptionHandler.handleCityAlreadyExists(exception, request);
 
-        CityAlreadyExistsException exception =
-                mock(CityAlreadyExistsException.class);
+		assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
 
-        when(exception.getMessage())
-                .thenReturn("City already exists");
+		assertNotNull(response.getBody());
 
-        HttpServletRequest request =
-                mock(HttpServletRequest.class);
+		Map<String, Object> body = response.getBody();
 
-        when(request.getRequestURI())
-                .thenReturn("/api/admin/cities/save");
+		assertEquals(409, body.get("status"));
 
-        ResponseEntity<Map<String, Object>> response =
-                exceptionHandler.handleCityAlreadyExists(
-                        exception,
-                        request
-                );
+		assertEquals("CITY_ALREADY_EXISTS", body.get("error"));
 
-        assertEquals(
-                HttpStatus.CONFLICT,
-                response.getStatusCode()
-        );
+		assertEquals("City already exists", body.get("message"));
 
-        assertNotNull(response.getBody());
+		assertEquals("/api/admin/cities/save", body.get("path"));
 
-        Map<String, Object> body = response.getBody();
+		assertNotNull(body.get("timestamp"));
+	}
 
-        assertEquals(
-                409,
-                body.get("status")
-        );
+	// =========================================================
+	// VALIDATION ERROR
+	// =========================================================
 
-        assertEquals(
-                "CITY_ALREADY_EXISTS",
-                body.get("error")
-        );
+	@Test
+	void handleValidation_shouldReturn400WithFieldErrors() {
 
-        assertEquals(
-                "City already exists",
-                body.get("message")
-        );
+		MethodArgumentNotValidException exception = mock(MethodArgumentNotValidException.class);
 
-        assertEquals(
-                "/api/admin/cities/save",
-                body.get("path")
-        );
+		BindingResult bindingResult = mock(BindingResult.class);
 
-        assertNotNull(body.get("timestamp"));
-    }
+		FieldError usernameError = new FieldError("registerRequest", "username", "Username is required");
 
+		FieldError passwordError = new FieldError("registerRequest", "password",
+				"Password must contain at least 8 characters");
 
-    // =========================================================
-    // VALIDATION ERROR
-    // =========================================================
+		when(exception.getBindingResult()).thenReturn(bindingResult);
 
-    @Test
-    void handleValidation_shouldReturn400WithFieldErrors() {
+		when(bindingResult.getFieldErrors()).thenReturn(List.of(usernameError, passwordError));
 
-        MethodArgumentNotValidException exception =
-                mock(MethodArgumentNotValidException.class);
+		HttpServletRequest request = mock(HttpServletRequest.class);
 
-        BindingResult bindingResult =
-                mock(BindingResult.class);
+		when(request.getRequestURI()).thenReturn("/api/auth/register");
 
-        FieldError usernameError =
-                new FieldError(
-                        "registerRequest",
-                        "username",
-                        "Username is required"
-                );
+		ResponseEntity<Map<String, Object>> response = exceptionHandler.handleValidation(exception, request);
 
-        FieldError passwordError =
-                new FieldError(
-                        "registerRequest",
-                        "password",
-                        "Password must contain at least 8 characters"
-                );
+		assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
 
-        when(exception.getBindingResult())
-                .thenReturn(bindingResult);
+		assertNotNull(response.getBody());
 
-        when(bindingResult.getFieldErrors())
-                .thenReturn(
-                        List.of(
-                                usernameError,
-                                passwordError
-                        )
-                );
+		Map<String, Object> body = response.getBody();
 
-        HttpServletRequest request =
-                mock(HttpServletRequest.class);
+		assertEquals(400, body.get("status"));
 
-        when(request.getRequestURI())
-                .thenReturn("/api/auth/register");
+		assertEquals("VALIDATION_FAILED", body.get("error"));
 
-        ResponseEntity<Map<String, Object>> response =
-                exceptionHandler.handleValidation(
-                        exception,
-                        request
-                );
+		assertEquals("Request validation failed", body.get("message"));
 
-        assertEquals(
-                HttpStatus.BAD_REQUEST,
-                response.getStatusCode()
-        );
+		assertEquals("/api/auth/register", body.get("path"));
 
-        assertNotNull(response.getBody());
+		assertNotNull(body.get("timestamp"));
 
-        Map<String, Object> body = response.getBody();
+		@SuppressWarnings("unchecked")
+		Map<String, String> errors = (Map<String, String>) body.get("errors");
 
-        assertEquals(
-                400,
-                body.get("status")
-        );
+		assertNotNull(errors);
 
-        assertEquals(
-                "VALIDATION_FAILED",
-                body.get("error")
-        );
+		assertEquals(2, errors.size());
 
-        assertEquals(
-                "Request validation failed",
-                body.get("message")
-        );
+		assertEquals("Username is required", errors.get("username"));
 
-        assertEquals(
-                "/api/auth/register",
-                body.get("path")
-        );
+		assertEquals("Password must contain at least 8 characters", errors.get("password"));
+	}
 
-        assertNotNull(body.get("timestamp"));
+	// =========================================================
+	// WEATHER SERVICE EXCEPTION
+	// =========================================================
 
-        @SuppressWarnings("unchecked")
-        Map<String, String> errors =
-                (Map<String, String>) body.get("errors");
+	@Test
+	void handleWeatherServiceException_shouldReturn503() {
 
-        assertNotNull(errors);
+		WeatherServiceException exception = mock(WeatherServiceException.class);
 
-        assertEquals(2, errors.size());
+		when(exception.getMessage()).thenReturn("Unable to connect to OpenWeather API");
 
-        assertEquals(
-                "Username is required",
-                errors.get("username")
-        );
+		ResponseEntity<ErrorResponse> response = exceptionHandler.handleWeatherServiceException(exception);
 
-        assertEquals(
-                "Password must contain at least 8 characters",
-                errors.get("password")
-        );
-    }
+		assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
 
+		assertNotNull(response.getBody());
 
-    // =========================================================
-    // WEATHER SERVICE EXCEPTION
-    // =========================================================
+		ErrorResponse body = response.getBody();
 
-    @Test
-    void handleWeatherServiceException_shouldReturn503() {
+		assertEquals(503, body.status());
 
-        WeatherServiceException exception =
-                mock(WeatherServiceException.class);
+		assertEquals("Unable to connect to OpenWeather API", body.message());
 
-        when(exception.getMessage())
-                .thenReturn(
-                        "Unable to connect to OpenWeather API"
-                );
+		assertNotNull(body.timestamp());
 
-        ResponseEntity<ErrorResponse> response =
-                exceptionHandler.handleWeatherServiceException(
-                        exception
-                );
+		assertNull(body.errors());
+	}
 
-        assertEquals(
-                HttpStatus.SERVICE_UNAVAILABLE,
-                response.getStatusCode()
-        );
+	// =========================================================
+	// DATABASE EXCEPTION
+	// =========================================================
 
-        assertNotNull(response.getBody());
+	@Test
+	void handleDatabaseException_shouldReturn500() {
 
-        ErrorResponse body = response.getBody();
+		DataAccessException exception = new DataAccessException("Database connection failed") {
+		};
 
-        assertEquals(503, body.status());
+		ResponseEntity<ErrorResponse> response = exceptionHandler.handleDatabaseException(exception);
 
-        assertEquals(
-                "Unable to connect to OpenWeather API",
-                body.message()
-        );
+		assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
 
-        assertNotNull(body.timestamp());
+		assertNotNull(response.getBody());
 
-        assertNull(body.errors());
-    }
+		ErrorResponse body = response.getBody();
 
+		assertEquals(500, body.status());
 
-    // =========================================================
-    // DATABASE EXCEPTION
-    // =========================================================
+		assertEquals("A database error occurred", body.message());
 
-    @Test
-    void handleDatabaseException_shouldReturn500() {
+		assertNotNull(body.timestamp());
 
-        DataAccessException exception =
-                new DataAccessException(
-                        "Database connection failed"
-                ) {
-                };
-
-        ResponseEntity<ErrorResponse> response =
-                exceptionHandler.handleDatabaseException(
-                        exception
-                );
-
-        assertEquals(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                response.getStatusCode()
-        );
-
-        assertNotNull(response.getBody());
-
-        ErrorResponse body = response.getBody();
-
-        assertEquals(500, body.status());
-
-        assertEquals(
-                "A database error occurred",
-                body.message()
-        );
-
-        assertNotNull(body.timestamp());
-
-        assertNull(body.errors());
-    }
+		assertNull(body.errors());
+	}
 }

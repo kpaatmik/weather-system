@@ -32,6 +32,7 @@ import com.kpaatmik.weatherapplication.entity.City;
 import com.kpaatmik.weatherapplication.exception.CityAlreadyExistsException;
 import com.kpaatmik.weatherapplication.exception.CityNotFoundException;
 import com.kpaatmik.weatherapplication.repository.CityRepository;
+
 class CityServiceTest {
 
 	private OpenWeatherGeocodingClient geocodingClient;
@@ -233,7 +234,7 @@ class CityServiceTest {
 	void createCity_shouldThrowCityAlreadyExistsException_whenDataIntegrityViolationOccurs() {
 
 		// Arrange
-		CreateCityRequest request = new CreateCityRequest("Kannur", "Kerala", "IN",null,null);
+		CreateCityRequest request = new CreateCityRequest("Kannur", "Kerala", "IN", null, null);
 
 		when(cityRepository.existsByNameIgnoreCaseAndCountryIgnoreCase("Kannur", "IN")).thenReturn(false);
 

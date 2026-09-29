@@ -24,80 +24,41 @@ public class WeatherCacheService {
 	@Cacheable(value = "weather", key = "#cityId")
 	public WeatherResponse getWeather(Long cityId) {
 
-		City city = cityRepository.findById(cityId)
-                .orElseThrow(() -> {
+		City city = cityRepository.findById(cityId).orElseThrow(() -> {
 
-                    log.warn(
-                            "Weather request failed: city not found, cityId={}",
-                            cityId
-                    );
+			log.warn("Weather request failed: city not found, cityId={}", cityId);
 
-                    return new CityNotFoundException(cityId);
-                });
+			return new CityNotFoundException(cityId);
+		});
 
-        log.debug(
-                "City found: cityId={}, name={}, active={}",
-                city.getId(),
-                city.getName(),
-                city.getActive()
-        );
+		log.debug("City found: cityId={}, name={}, active={}", city.getId(), city.getName(), city.getActive());
 
-        if (!Boolean.TRUE.equals(city.getActive())) {
+		if (!Boolean.TRUE.equals(city.getActive())) {
 
-            log.warn(
-                    "Weather request rejected: city is inactive, cityId={}, name={}",
-                    city.getId(),
-                    city.getName()
-            );
+			log.warn("Weather request rejected: city is inactive, cityId={}, name={}", city.getId(), city.getName());
 
-            throw new CityNotFoundException(cityId);
-        }
+			throw new CityNotFoundException(cityId);
+		}
 
-        log.debug(
-                "Calling OpenWeather API: cityId={}, city={}, latitude={}, longitude={}",
-                city.getId(),
-                city.getName(),
-                city.getLatitude(),
-                city.getLongitude()
-        );
+		log.debug("Calling OpenWeather API: cityId={}, city={}, latitude={}, longitude={}", city.getId(),
+				city.getName(), city.getLatitude(), city.getLongitude());
 
-        OpenWeatherResponse weather =
-                weatherClient.getWeather(
-                        city.getLatitude(),
-                        city.getLongitude()
-                );
+		OpenWeatherResponse weather = weatherClient.getWeather(city.getLatitude(), city.getLongitude());
 
-        log.debug(
-                "OpenWeather API response received: cityId={}, city={}",
-                city.getId(),
-                city.getName()
-        );
+		log.debug("OpenWeather API response received: cityId={}, city={}", city.getId(), city.getName());
 
-        OpenWeatherResponse.Main main = weather.main();
+		OpenWeatherResponse.Main main = weather.main();
 
-        OpenWeatherResponse.Wind wind = weather.wind();
+		OpenWeatherResponse.Wind wind = weather.wind();
 
-        OpenWeatherResponse.Weather currentWeather =
-                weather.weather().get(0);
+		OpenWeatherResponse.Weather currentWeather = weather.weather().get(0);
 
-        WeatherResponse response = new WeatherResponse(
-                city.getId(),
-                city.getName(),
-                main.temp(),
-                main.feelsLike(),
-                main.humidity(),
-                wind.speed(),
-                currentWeather.main(),
-                currentWeather.description()
-        );
+		WeatherResponse response = new WeatherResponse(city.getId(), city.getName(), main.temp(), main.feelsLike(),
+				main.humidity(), wind.speed(), currentWeather.main(), currentWeather.description());
 
-        log.info(
-                "Weather retrieved successfully: cityId={}, city={}, condition={}",
-                city.getId(),
-                city.getName(),
-                currentWeather.main()
-        );
+		log.info("Weather retrieved successfully: cityId={}, city={}, condition={}", city.getId(), city.getName(),
+				currentWeather.main());
 
-        return response;
+		return response;
 	}
 }
