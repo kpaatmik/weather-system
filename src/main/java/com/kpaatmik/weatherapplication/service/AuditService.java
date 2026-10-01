@@ -23,16 +23,12 @@ public class AuditService {
 
 	@Transactional
 	public void log(Long userId, AuditAction action, AuditEntityType entityType, Long entityId, String details) {
-
 		User user = null;
-
 		if (userId != null) {
 			user = userRepository.findById(userId).orElse(null);
 		}
-
 		AuditLog auditLog = AuditLog.builder().user(user).action(action.name()).entityType(entityType.name())
 				.entityId(entityId).details(details).timestamp(LocalDateTime.now()).build();
-
 		auditLogRepository.save(auditLog);
 	}
 

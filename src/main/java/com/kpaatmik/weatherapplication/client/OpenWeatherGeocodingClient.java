@@ -18,13 +18,11 @@ public class OpenWeatherGeocodingClient {
 
 	public OpenWeatherGeocodingClient(@Qualifier("geocodingRestClient") RestClient restClient,
 			OpenWeatherProperties properties) {
-
 		this.restClient = restClient;
 		this.properties = properties;
 	}
 
 	public OpenWeatherGeocodingResponse[] searchCity(String cityName) {
-
 		try {
 			return restClient.get()
 					.uri(uriBuilder -> uriBuilder.path("/direct").queryParam("q", cityName).queryParam("limit", 5)
@@ -34,7 +32,6 @@ public class OpenWeatherGeocodingClient {
 			throw new WeatherServiceException("Unable to connect to OpenWeather API", ex);
 		} catch (RestClientException ex) {
 			throw new WeatherServiceException("OpenWeather API returned an error", ex);
-
 		}
 	}
 }

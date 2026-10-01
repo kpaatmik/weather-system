@@ -38,7 +38,6 @@ public class WeatherController {
 			@ApiResponse(responseCode = "502", description = "External weather service failure") })
 	@GetMapping("/weather/{cityId}")
 	public ResponseEntity<WeatherResponse> getWeather(@PathVariable Long cityId) {
-
 		return ResponseEntity.ok(weatherService.getWeather(cityId));
 	}
 
@@ -48,7 +47,6 @@ public class WeatherController {
 			@ApiResponse(responseCode = "403", description = "Access denied") })
 	@GetMapping("/active")
 	public ResponseEntity<List<PublicCityResponse>> getActiveCities() {
-
 		return ResponseEntity.ok(cityService.getActiveCities());
 	}
 }

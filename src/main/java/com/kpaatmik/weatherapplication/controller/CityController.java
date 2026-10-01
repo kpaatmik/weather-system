@@ -24,9 +24,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
 import jakarta.validation.Valid;
-
 import lombok.AllArgsConstructor;
 
 @RestController
@@ -44,7 +42,6 @@ public class CityController {
 			@ApiResponse(responseCode = "403", description = "Admin access required") })
 	@GetMapping
 	public ResponseEntity<List<CityResponse>> getAllCities() {
-
 		return ResponseEntity.ok(cityService.getAllCities());
 	}
 
@@ -55,9 +52,7 @@ public class CityController {
 			@ApiResponse(responseCode = "404", description = "City not found") })
 	@DeleteMapping("/{id}")
 	public ResponseEntity<Void> deleteCity(@PathVariable Long id) {
-
 		cityService.deleteCity(id);
-
 		return ResponseEntity.noContent().build();
 	}
 
@@ -68,7 +63,6 @@ public class CityController {
 			@ApiResponse(responseCode = "404", description = "City not found") })
 	@PatchMapping("/{cityId}/deactivate")
 	public ResponseEntity<CityResponse> deactivateCity(@PathVariable Long cityId) {
-
 		return ResponseEntity.ok(cityService.deactivateCity(cityId));
 	}
 
@@ -79,7 +73,6 @@ public class CityController {
 			@ApiResponse(responseCode = "403", description = "Admin access required") })
 	@GetMapping("/sugesstion")
 	public ResponseEntity<List<CitySuggestionResponse>> searchCities(@RequestParam String q) {
-
 		return ResponseEntity.ok().body(cityService.searchCities(q));
 	}
 
@@ -91,9 +84,7 @@ public class CityController {
 			@ApiResponse(responseCode = "409", description = "City already exists") })
 	@PostMapping("/save")
 	public ResponseEntity<CityResponse> createCity(@Valid @RequestBody CreateCityRequest request) {
-
 		CityResponse response = cityService.createCity(request);
-
 		return ResponseEntity.status(HttpStatus.CREATED).body(response);
 	}
 }

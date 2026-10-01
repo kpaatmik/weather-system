@@ -25,26 +25,19 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AuditLog {
-
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
-
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "user_id")
 	private User user;
-
 	@Column(nullable = false, length = 50)
 	private String action;
-
 	@Column(nullable = false, length = 50)
 	private String entityType;
-
 	private Long entityId;
-
 	@Column(columnDefinition = "TEXT")
 	private String details;
-
 	@Column(nullable = false)
 	private LocalDateTime timestamp;
 

@@ -10,7 +10,6 @@ import com.kpaatmik.weatherapplication.config.OpenWeatherProperties;
 import com.kpaatmik.weatherapplication.dto.response.OpenWeatherResponse;
 import com.kpaatmik.weatherapplication.exception.WeatherServiceException;
 
-import lombok.extern.log4j.Log4j;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
@@ -21,13 +20,11 @@ public class OpenWeatherClient {
 	private final OpenWeatherProperties properties;
 
 	public OpenWeatherClient(@Qualifier("weatherRestClient") RestClient restClient, OpenWeatherProperties properties) {
-
 		this.restClient = restClient;
 		this.properties = properties;
 	}
 
 	public OpenWeatherResponse getWeather(Double latitude, Double longitude) {
-
 		try {
 			return restClient.get()
 					.uri(uriBuilder -> uriBuilder.path("/weather").queryParam("lat", latitude)
@@ -38,7 +35,6 @@ public class OpenWeatherClient {
 			throw new WeatherServiceException("Unable to connect to OpenWeather API", ex);
 		} catch (RestClientException ex) {
 			throw new WeatherServiceException("OpenWeather API returned an error", ex);
-
 		}
 	}
 }

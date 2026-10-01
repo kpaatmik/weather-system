@@ -19,7 +19,6 @@ public class UserService {
 		if ((currentUser != null)) {
 			return currentUser.getId();
 		}
-
 		return null;
 	}
 }

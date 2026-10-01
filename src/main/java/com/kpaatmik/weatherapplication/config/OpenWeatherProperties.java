@@ -22,7 +22,6 @@ public class OpenWeatherProperties {
 	}
 
 	public String getWeatherBaseUrl() {
-
 		return weatherBaseUrl;
 	}
 

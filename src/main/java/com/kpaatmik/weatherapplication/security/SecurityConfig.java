@@ -35,19 +35,14 @@ public class SecurityConfig {
 
 	@Bean
 	public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
-
 		return configuration.getAuthenticationManager();
 	}
 
 	@Bean
 	public AuthenticationEntryPoint authenticationEntryPoint() {
-
 		return (request, response, authException) -> {
-
 			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-
 			response.setContentType("application/json");
-
 			response.getWriter().write("""
 					{
 					    "status": 401,
@@ -59,13 +54,9 @@ public class SecurityConfig {
 
 	@Bean
 	public AccessDeniedHandler accessDeniedHandler() {
-
 		return (request, response, accessDeniedException) -> {
-
 			response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-
 			response.setContentType("application/json");
-
 			response.getWriter().write("""
 					{
 					    "status": 403,
@@ -77,30 +68,19 @@ public class SecurityConfig {
 
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
 		http.csrf(csrf -> csrf.disable())
-
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
 				.exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint())
 						.accessDeniedHandler(accessDeniedHandler()))
-
 				.authorizeHttpRequests(auth -> auth
-
 						.requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/refresh",
 								"/api/auth/logout")
 						.permitAll()
 						// Swagger / OpenAPI
 						.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
-
-						.requestMatchers("/api/admin/**").hasRole("ADMIN")
-
-						.requestMatchers("/api/cities/**").hasAnyRole("USER", "ADMIN")
-
-						.anyRequest().authenticated())
-
+						.requestMatchers("/api/admin/**").hasRole("ADMIN").requestMatchers("/api/cities/**")
+						.hasAnyRole("USER", "ADMIN").anyRequest().authenticated())
 				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-
 		return http.build();
 	}
 }

@@ -12,24 +12,17 @@ public class OpenWeatherConfig {
 
 	@Bean("weatherRestClient")
 	public RestClient weatherRestClient(OpenWeatherProperties properties) {
-
 		SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-
 		requestFactory.setConnectTimeout(properties.getConnectTimeout());
 		requestFactory.setReadTimeout(properties.getReadTimeout());
-
 		return RestClient.builder().baseUrl(properties.getWeatherBaseUrl()).requestFactory(requestFactory).build();
 	}
 
 	@Bean("geocodingRestClient")
-
 	public RestClient geocodingRestClient(OpenWeatherProperties properties) {
-
 		SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-
 		requestFactory.setConnectTimeout(properties.getConnectTimeout());
 		requestFactory.setReadTimeout(properties.getReadTimeout());
-
 		return RestClient.builder().baseUrl(properties.getGeocodingBaseUrl()).requestFactory(requestFactory).build();
 	}
 }

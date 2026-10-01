@@ -12,5 +12,4 @@ public record CreateCityRequest(
 		@NotBlank(message = "Country is required") @Size(max = 10, message = "Country must not exceed 10 characters") String country,
 		@NotNull(message = "Latitude is required") @DecimalMin(value = "-90.0", message = "Latitude must be between -90 and 90") Double latitude,
 		@DecimalMax(value = "180.0", message = "Longitude must be between -180 and 180") Double longitude) {
-
 }
