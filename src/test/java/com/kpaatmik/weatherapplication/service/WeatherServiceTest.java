@@ -2,18 +2,20 @@ package com.kpaatmik.weatherapplication.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import com.kpaatmik.weatherapplication.audit.AuditAction;
 import com.kpaatmik.weatherapplication.audit.AuditEntityType;
 import com.kpaatmik.weatherapplication.dto.response.WeatherResponse;
-import com.kpaatmik.weatherapplication.security.SecurityUtil;
 
 class WeatherServiceTest {
 
@@ -30,7 +32,7 @@ class WeatherServiceTest {
 		userService = mock(UserService.class);
 		weatherCacheService = mock(WeatherCacheService.class);
 
-		weatherService = new WeatherService(null, null, auditService, userService, weatherCacheService);
+		weatherService = new WeatherService(auditService, userService, weatherCacheService);
 	}
 
 	@Test
