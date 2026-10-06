@@ -1,14 +1,22 @@
 package com.kpaatmik.weatherapplication.service;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -16,6 +24,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.kpaatmik.weatherapplication.audit.AuditAction;
 import com.kpaatmik.weatherapplication.audit.AuditEntityType;
+import com.kpaatmik.weatherapplication.config.JwtProperties;
 import com.kpaatmik.weatherapplication.dto.request.LoginRequest;
 import com.kpaatmik.weatherapplication.dto.request.RegisterRequest;
 import com.kpaatmik.weatherapplication.dto.response.AuthResponse;
@@ -27,8 +36,6 @@ import com.kpaatmik.weatherapplication.exception.UserAccountInactiveException;
 import com.kpaatmik.weatherapplication.exception.UserAlreadyExistsException;
 import com.kpaatmik.weatherapplication.repository.UserRepository;
 import com.kpaatmik.weatherapplication.security.JwtService;
-import com.kpaatmik.weatherapplication.service.AuditService;
-import com.kpaatmik.weatherapplication.service.AuthService;
 
 class AuthServiceTest {
 
@@ -37,7 +44,7 @@ class AuthServiceTest {
 	private AuthenticationManager authenticationManager;
 	private JwtService jwtService;
 	private AuditService auditService;
-
+	private JwtProperties jwtProperties;
 	private AuthService authService;
 
 	@BeforeEach
@@ -48,8 +55,10 @@ class AuthServiceTest {
 		authenticationManager = mock(AuthenticationManager.class);
 		jwtService = mock(JwtService.class);
 		auditService = mock(AuditService.class);
+		jwtProperties = mock(JwtProperties.class);
 
-		authService = new AuthService(userRepository, passwordEncoder, authenticationManager, jwtService, auditService);
+		authService = new AuthService(userRepository, passwordEncoder, authenticationManager, jwtService, auditService,
+				jwtProperties);
 	}
 
 	// ---------------------------------------------------------
@@ -257,4 +266,23 @@ class AuthServiceTest {
 
 		assertThrows(InvalidRefreshTokenException.class, () -> authService.refresh("refresh-token"));
 	}
+
+//	@Test
+//	void oauthLogin_shouldReturnOAuthTokenResponse() {
+//
+//		AuthResponse authResponse = new AuthResponse("test-access-token", "Bearer", "aatmik", "USER");
+//
+//		when(jwtService.generateAccessToken("aatmik", "USER")).thenReturn("test-access-token");
+//
+//		when(jwtProperties.getAccessTokenExpiration()).thenReturn(900000L);
+//
+//		// mock whatever your existing login() implementation requires
+//		// ...
+//
+//		OAuthTokenResponse response = authService.oauthLogin("aatmik", "password");
+//
+//		assertEquals("test-access-token", response.access_token());
+//		assertEquals("Bearer", response.token_type());
+//		assertEquals(900L, response.expires_in());
+//	}
 }

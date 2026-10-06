@@ -1,11 +1,13 @@
 package com.kpaatmik.weatherapplication.controller;
 
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.kpaatmik.weatherapplication.audit.AuditAction;
@@ -13,6 +15,7 @@ import com.kpaatmik.weatherapplication.audit.AuditEntityType;
 import com.kpaatmik.weatherapplication.dto.request.LoginRequest;
 import com.kpaatmik.weatherapplication.dto.request.RegisterRequest;
 import com.kpaatmik.weatherapplication.dto.response.AuthResponse;
+import com.kpaatmik.weatherapplication.dto.response.OAuthTokenResponse;
 import com.kpaatmik.weatherapplication.security.SecurityUtil;
 import com.kpaatmik.weatherapplication.service.AuditService;
 import com.kpaatmik.weatherapplication.service.AuthService;
@@ -102,5 +105,14 @@ public class AuthController {
 		auditService.log(userId, AuditAction.USER_LOGOUT, AuditEntityType.USER, userId, "User loged out: " + userId);
 		return ResponseCookie.from("refresh_token", "").httpOnly(true).secure(false) // true in production HTTPS
 				.sameSite("Strict").path("/api/auth").maxAge(0).build();
+	}
+
+	@PostMapping(value = "/oauth/token", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+	public ResponseEntity<OAuthTokenResponse> oauthToken(@RequestParam String username, @RequestParam String password,
+			@RequestParam(name = "grant_type") String grantType) {
+
+		OAuthTokenResponse response = authService.oauthLogin(username, password);
+
+		return ResponseEntity.ok(response);
 	}
 }

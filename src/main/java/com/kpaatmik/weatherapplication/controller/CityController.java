@@ -31,7 +31,7 @@ import lombok.AllArgsConstructor;
 @RequestMapping("/api/admin/cities")
 @AllArgsConstructor
 @Tag(name = "Admin - City Management", description = "APIs for administrators to search, add, view, deactivate and delete configured cities")
-@SecurityRequirement(name = "bearerAuth")
+@SecurityRequirement(name = "oauth2")
 public class CityController {
 
 	private final CityService cityService;

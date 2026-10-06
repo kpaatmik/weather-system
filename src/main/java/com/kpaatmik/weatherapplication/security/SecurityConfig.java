@@ -74,7 +74,7 @@ public class SecurityConfig {
 						.accessDeniedHandler(accessDeniedHandler()))
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/refresh",
-								"/api/auth/logout")
+								"/api/auth/logout", "/api/auth/oauth/token")
 						.permitAll()
 						// Swagger / OpenAPI
 						.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()

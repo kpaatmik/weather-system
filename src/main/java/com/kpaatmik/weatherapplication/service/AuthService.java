@@ -10,9 +10,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.kpaatmik.weatherapplication.audit.AuditAction;
 import com.kpaatmik.weatherapplication.audit.AuditEntityType;
+import com.kpaatmik.weatherapplication.config.JwtProperties;
 import com.kpaatmik.weatherapplication.dto.request.LoginRequest;
 import com.kpaatmik.weatherapplication.dto.request.RegisterRequest;
 import com.kpaatmik.weatherapplication.dto.response.AuthResponse;
+import com.kpaatmik.weatherapplication.dto.response.OAuthTokenResponse;
 import com.kpaatmik.weatherapplication.entity.Role;
 import com.kpaatmik.weatherapplication.entity.User;
 import com.kpaatmik.weatherapplication.exception.InvalidCredentialsException;
@@ -35,6 +37,15 @@ public class AuthService {
 	private final AuthenticationManager authenticationManager;
 	private final JwtService jwtService;
 	private final AuditService auditService;
+	private final JwtProperties jwtProperties;
+
+	public OAuthTokenResponse oauthLogin(String username, String password) {
+
+		AuthResponse response = login(new LoginRequest(username, password));
+
+		return new OAuthTokenResponse(response.accessToken(), response.tokenType(),
+				jwtProperties.getAccessTokenExpiration() / 1000);
+	}
 
 	@Transactional
 	public void register(RegisterRequest request) {

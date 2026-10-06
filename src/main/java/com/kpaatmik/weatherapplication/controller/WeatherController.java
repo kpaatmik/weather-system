@@ -24,7 +24,7 @@ import lombok.AllArgsConstructor;
 @RequestMapping("api/cities")
 @AllArgsConstructor
 @Tag(name = "Weather", description = "APIs for viewing configured cities and retrieving weather information")
-@SecurityRequirement(name = "bearerAuth")
+@SecurityRequirement(name = "oauth2")
 public class WeatherController {
 
 	private final CityService cityService;
