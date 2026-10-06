@@ -95,16 +95,16 @@ public class CityService {
 	@Transactional
 	@CacheEvict(value = "weather", key = "#id")
 	public void deleteCity(Long id) {
-		log.info("Deleting city: cityId={}", id);
+		// log.info("Deleting city: cityId={}", id);
 		City city = cityRepository.findById(id).orElseThrow(() -> {
-			log.warn("City deletion failed: city not found, cityId={}", id);
+			// log.warn("City deletion failed: city not found, cityId={}", id);
 			return new CityNotFoundException(id);
 		});
 		String cityName = city.getName();
 		cityRepository.delete(city);
 		auditService.log(userService.getUserId(SecurityUtil.getCurrentUsername()), AuditAction.CITY_DELETED,
 				AuditEntityType.CITY, null, "City Deleted: " + cityName);
-		log.info("City deleted successfully: cityId={}, name={}", id, cityName);
+		// log.info("City deleted successfully: cityId={}, name={}", id, cityName);
 	}
 
 	@Transactional
